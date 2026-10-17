@@ -129,3 +129,20 @@ Stage Summary:
 - Agent Browser: ambas secciones renderizadas, descarga PDF funcionó, formulario email llenado y enviado (mostró resultado fallback), 0 errores de consola.
 - Móvil (iPhone 14): secciones presentes, footer sticky sin overlap (top 6648px de 10639px).
 - Lint: 0 errores.
+
+---
+Task ID: 7
+Agent: main
+Task: Agregar filtro por tipo (playa/piscina/gimnasio) en el selector "Lugar asignado" del formulario
+
+Work Log:
+- Editado src/components/dashboard/matricula-form.tsx:
+  - Importados iconos Waves/Droplets/Dumbbell/MapPin y util cn.
+  - Definido tipo FiltroLugar y array FILTROS_LUGAR (Todos, Playas, Piscinas, Gimnasios c/ piscina).
+  - Agregado estado filtroLugar con useState y derivación lugaresFiltrados.
+  - Función cambiarFiltroLugar: si el lugar seleccionado no coincide con el nuevo filtro, limpia la selección.
+  - Renderizado 4 botones tipo píldora con icono + label + count encima del Select de lugar asignado.
+  - El Select ahora usa lugaresFiltrados y muestra mensaje "No hay lugares" si la categoría está vacía.
+
+Stage Summary:
+- Verificado con Agent Browser: Todos=11, Playas=6, Piscinas=3, Gimnasios=2 opciones correctas. 0 errores de consola. Lint pasa.

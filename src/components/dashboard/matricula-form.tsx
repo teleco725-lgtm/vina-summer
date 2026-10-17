@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Loader2, ShieldCheck, Send, UserPlus } from "lucide-react"
+import { Loader2, ShieldCheck, Send, UserPlus, Waves, Droplets, Dumbbell, MapPin } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import {
   Form,
   FormControl,
@@ -77,6 +78,15 @@ const TIPO_BADGE: Record<string, { label: string; cls: string }> = {
   gimnasio_con_piscina: { label: "Gimnasio c/ Piscina", cls: "bg-amber-100 text-amber-700 border-amber-200" },
 }
 
+type FiltroLugar = "todos" | "playa" | "piscina_municipal" | "gimnasio_con_piscina"
+
+const FILTROS_LUGAR: { key: FiltroLugar; label: string; icon: typeof Waves }[] = [
+  { key: "todos", label: "Todos", icon: MapPin },
+  { key: "playa", label: "Playas", icon: Waves },
+  { key: "piscina_municipal", label: "Piscinas", icon: Droplets },
+  { key: "gimnasio_con_piscina", label: "Gimnasios c/ piscina", icon: Dumbbell },
+]
+
 function formatRutLive(v: string): string {
   const clean = v.replace(/[^0-9kK]/g, "").toUpperCase()
   if (clean.length < 2) return clean
@@ -94,6 +104,7 @@ export function MatriculaForm({
   colaboradores: ColaboradorOption[]
 }) {
   const [submitting, setSubmitting] = useState(false)
+  const [filtroLugar, setFiltroLugar] = useState<FiltroLugar>("todos")
   const router = useRouter()
 
   const form = useForm<FormValues>({
@@ -108,6 +119,22 @@ export function MatriculaForm({
       observaciones: "",
     },
   })
+
+  // Lugares filtrados según el filtro activo (playa / piscina / gimnasio / todos)
+  const lugaresFiltrados =
+    filtroLugar === "todos" ? lugares : lugares.filter((l) => l.tipo === filtroLugar)
+
+  // Si el lugar seleccionado no pertenece al filtro activo, se limpia la selección
+  function cambiarFiltroLugar(f: FiltroLugar) {
+    setFiltroLugar(f)
+    const actual = form.getValues("lugarId")
+    if (actual) {
+      const lugarActual = lugares.find((l) => l.id === actual)
+      if (lugarActual && f !== "todos" && lugarActual.tipo !== f) {
+        form.setValue("lugarId", "")
+      }
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true)
@@ -229,6 +256,42 @@ export function MatriculaForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Lugar asignado</FormLabel>
+                  {/* Filtro rápido por tipo: Playas / Piscinas / Gimnasios */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {FILTROS_LUGAR.map((f) => {
+                      const active = filtroLugar === f.key
+                      const Icon = f.icon
+                      const count =
+                        f.key === "todos"
+                          ? lugares.length
+                          : lugares.filter((l) => l.tipo === f.key).length
+                      return (
+                        <button
+                          key={f.key}
+                          type="button"
+                          onClick={() => cambiarFiltroLugar(f.key)}
+                          aria-pressed={active}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                            active
+                              ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                              : "bg-white/70 border-white/60 text-slate-600 hover:bg-white",
+                          )}
+                        >
+                          <Icon className="h-3 w-3" />
+                          {f.label}
+                          <span
+                            className={cn(
+                              "ml-0.5 rounded-full px-1 text-[10px] tabular-nums",
+                              active ? "bg-white/20" : "bg-slate-100 text-slate-500",
+                            )}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -236,16 +299,22 @@ export function MatriculaForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="max-h-72">
-                      {lugares.map((l) => (
-                        <SelectItem key={l.id} value={l.id}>
-                          <span className="flex items-center gap-2">
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${TIPO_BADGE[l.tipo]?.cls ?? ""}`}>
-                              {TIPO_BADGE[l.tipo]?.label ?? l.tipo}
-                            </Badge>
-                            <span className="truncate">{l.nombre}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {lugaresFiltrados.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                          No hay lugares en esta categoría.
+                        </div>
+                      ) : (
+                        lugaresFiltrados.map((l) => (
+                          <SelectItem key={l.id} value={l.id}>
+                            <span className="flex items-center gap-2">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${TIPO_BADGE[l.tipo]?.cls ?? ""}`}>
+                                {TIPO_BADGE[l.tipo]?.label ?? l.tipo}
+                              </Badge>
+                              <span className="truncate">{l.nombre}</span>
+                            </span>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
