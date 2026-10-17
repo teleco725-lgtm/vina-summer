@@ -354,3 +354,30 @@ Stage Summary:
   · / (colaborador): noticias, formulario y mapa OK, footer sticky.
 - PPTX validado: ZIP correcto, 5 slides XML, 55 archivos internos.
 - Lint: 0 errores. 0 errores de consola.
+
+---
+Task ID: 11
+Agent: main
+Task: Sistema de login con portada, OAuth Google/Microsoft + cuenta demo, admins claudio.urbina@vtr.net y veltrixintegral@gmail.com, redirect por rol
+
+Work Log:
+- .env: NEXTAUTH_SECRET generado, placeholders GOOGLE_CLIENT_ID/SECRET y MICROSOFT_CLIENT_ID/SECRET/TENANT.
+- src/lib/admin-emails.ts: ADMIN_EMAILS = [claudio.urbina@vtr.net, veltrixintegral@gmail.com], DEMO_EMAIL demo@munivina.cl / demo1234, ADMIN_PASSWORD admin123.
+- src/lib/auth.ts: NextAuth config con 3 providers: Credentials (demo + admin), Google (si env), AzureAD/Microsoft (si env). Callbacks jwt/session asignan rol (admin si email en allowlist, sino colaborador). Redirect callback. Tipos extendidos (session.user.role, .provider).
+- src/app/api/auth/[...nextauth]/route.ts: handler NextAuth.
+- src/components/providers/session-provider.tsx: SessionProvider wrapper.
+- layout.tsx: envuelto con <Providers>.
+- src/app/login/page.tsx + src/components/auth/login-form.tsx: portada de login con gradient amigable, logo, tarjeta con botones Google/Microsoft (íconos SVG), formulario credenciales, y 2 botones de acceso rápido (Colaborador demo + Admin DIDECO). Redirect post-login: admin→/admin, colaborador→/. Badge si OAuth no configurado.
+- src/middleware.ts: gate auth por ruta (/admin requiere rol admin, / requiere sesión, /login y /api/auth/* públicos) + cabeceras de seguridad mantenidas + CSP ampliada para Google/Microsoft OAuth.
+- role-header.tsx: usa useSession(), muestra nombre/email de sesión + badge de proveedor (Google/Microsoft) + botón "Salir" (signOut → /login).
+
+Stage Summary:
+- Verificado con Agent Browser:
+  · Sin sesión: / y /admin → 307 redirect a /login.
+  · Login admin (claudio.urbina@vtr.net / admin123) → redirect a /admin, header muestra "Claudio Urbina" + badge Admin.
+  · Login demo (demo@munivina.cl / demo1234) → redirect a / (colaborador).
+  · Colaborador intenta /admin → redirect a / (bloqueo por rol).
+  · Logout → /login.
+  · Móvil y desktop: portada responsive, sin errores de consola.
+- OAuth Google/Microsoft: botones presentes, se activan al configurar credenciales en .env (redirect URIs: /api/auth/callback/google y /api/auth/callback/azure-ad).
+- Lint: 0 errores.
