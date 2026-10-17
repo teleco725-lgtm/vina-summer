@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { requireAdmin } from "@/lib/authz"
 
-/** Asigna / desasigna un colaborador a un lugar */
+/** Asigna un colaborador a un lugar — requiere admin */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authz = await requireAdmin()
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status })
+  }
+
   const { id } = await params
   let body: Record<string, unknown>
   try {
@@ -24,7 +30,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({ ok: true }, { status: 201 })
 }
 
+/** Desasigna un colaborador de un lugar — requiere admin */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const authz = await requireAdmin()
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status })
+  }
+
   const { id } = await params
   const { searchParams } = new URL(req.url)
   const colaboradorId = searchParams.get("colaboradorId")

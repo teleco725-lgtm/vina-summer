@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sanitizeText, TIPOS_LUGAR, isValidLat, isValidLng, type TipoLugar } from "@/lib/security"
+import { requireAdmin } from "@/lib/authz"
 
 /**
  * GET /api/lugares — lista lugares (con colaboradores y conteo de matrículas).
@@ -49,8 +50,14 @@ export async function GET(req: Request) {
 
 /**
  * POST /api/lugares — crea un lugar (validación estricta).
+ * Requiere privilegios de administrador.
  */
 export async function POST(req: Request) {
+  const authz = await requireAdmin()
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()

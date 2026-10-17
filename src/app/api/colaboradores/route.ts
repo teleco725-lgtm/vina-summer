@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sanitizeText, validateRut, formatRut } from "@/lib/security"
+import { getServerRole, requireAdmin } from "@/lib/authz"
 
-/** GET /api/colaboradores — lista colaboradores con conteo de lugares asignados */
+/** Enmascara RUT para no-admin: 12.345.678-5 → ••.••.678-5 */
+function maskRutForNonAdmin(rut: string, isAdmin: boolean): string {
+  if (isAdmin) return rut
+  const parts = rut.split("-")
+  if (parts.length !== 2) return rut
+  return `••.••.${parts[0].slice(-3)}.${parts[1]}`
+}
+
+/** GET /api/colaboradores — lista colaboradores con conteo de lugares asignados.
+ *  Los RUT se enmascaran para usuarios no-admin (protección de datos). */
 export async function GET() {
+  const { isAdmin } = await getServerRole()
   const cols = await db.colaborador.findMany({
     where: { activo: true },
     orderBy: { nombre: "asc" },
     include: { _count: { select: { lugares: true, matriculas: true } } },
   })
-  // Protección de datos: RUT enmascarado en endpoints de listado
+  // Protección de datos: RUT enmascarado para no-admin
   const safe = cols.map((c) => ({
     id: c.id,
     nombre: c.nombre,
-    rut: c.rut,
-    telefono: c.telefono,
+    rut: maskRutForNonAdmin(c.rut, isAdmin),
+    telefono: isAdmin ? c.telefono : null,
     email: c.email,
     rol: c.rol,
     lugaresAsignados: c._count.lugares,
@@ -23,8 +34,14 @@ export async function GET() {
   return NextResponse.json({ colaboradores: safe })
 }
 
-/** POST /api/colaboradores — crea colaborador con validación de RUT */
+/** POST /api/colaboradores — crea colaborador con validación de RUT.
+ *  Requiere privilegios de administrador. */
 export async function POST(req: Request) {
+  const authz = await requireAdmin()
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
