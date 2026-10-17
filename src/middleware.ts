@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { ADMIN_EMAILS } from "@/lib/admin-emails"
+import { AUTH_SECRET_VALUE } from "@/lib/auth"
 
 /**
  * Middleware — combina:
@@ -48,7 +49,7 @@ export async function middleware(req: NextRequest) {
   if (isPublic) return res
 
   // --- 3. Verificar sesión ---
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  const token = await getToken({ req, secret: AUTH_SECRET_VALUE })
   const loginUrl = new URL("/login", req.url)
   // Conservar la URL original para redirigir tras login
   loginUrl.searchParams.set("callbackUrl", encodeURIComponent(pathname))

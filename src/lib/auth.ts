@@ -17,6 +17,33 @@ import {
 } from "@/lib/admin-emails"
 
 /**
+ * Secret para firmar sesiones JWT.
+ * Prioridad:
+ *   1. NEXTAUTH_SECRET del .env (configurado por el admin)
+ *   2. Fallback determinista (garantiza que el login funcione incluso si el
+ *      .env se pierde o resetea — situación común en este sandbox).
+ *
+ * IMPORTANTE: este módulo se importa tanto en el servidor Node (API routes)
+ * como en el middleware (Edge Runtime). No usar process.cwd() ni Buffer
+ * porque no están disponibles en Edge.
+ *
+ * Nota: en producción SIEMPRE debe configurarse NEXTAUTH_SECRET en .env con
+ * un valor aleatorio (openssl rand -base64 32).
+ */
+const FALLBACK_SECRET = "vina-summer-dev-fallback-secret-determinista-2024-clave"
+const AUTH_SECRET = process.env.NEXTAUTH_SECRET || FALLBACK_SECRET
+
+if (!process.env.NEXTAUTH_SECRET && process.env.NODE_ENV !== "production") {
+  console.warn(
+    "[auth] NEXTAUTH_SECRET no encontrado en .env — usando secret de desarrollo por defecto. " +
+      "Para producción, configure NEXTAUTH_SECRET con: openssl rand -base64 32",
+  )
+}
+
+/** Exportado para que el middleware (Edge) use el mismo secret en getToken() */
+export const AUTH_SECRET_VALUE = AUTH_SECRET
+
+/**
  * Configuración NextAuth.
  * - Google y Microsoft (Azure AD): se activan solo si hay credenciales OAuth configuradas.
  * - Credentials: cuenta demo + cuentas admin (por email).
@@ -25,7 +52,7 @@ import {
 export const authOptions: NextAuthOptions = {
   // Sin adaptador: usamos estrategia JWT (sin persistir sesiones en DB).
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 }, // 8 horas
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: AUTH_SECRET,
   pages: {
     signIn: "/login",
     error: "/login",
