@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import {
   Waves,
   Mail,
@@ -22,8 +22,8 @@ import { Badge } from "@/components/ui/badge"
 import { ADMIN_EMAILS, DEMO_EMAIL, DEMO_PASSWORD, ADMIN_PASSWORD } from "@/lib/admin-emails"
 
 function LoginFormInner() {
-  const router = useRouter()
   const params = useSearchParams()
+  const urlError = params.get("error")
   const callbackUrl = params.get("callbackUrl") ?? "/"
 
   const [email, setEmail] = useState("")
@@ -31,7 +31,19 @@ function LoginFormInner() {
   const [loadingCreds, setLoadingCreds] = useState(false)
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [loadingMs, setLoadingMs] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Mostrar error de NextAuth si viene por query param (credenciales inválidas, etc.)
+  const errorMap: Record<string, string> = {
+    CredentialsSignin: "Credenciales inválidas. Verifique el correo y la contraseña.",
+    OAuthSignin: "No se pudo conectar con el proveedor. Configure las credenciales OAuth en .env",
+    OAuthCallback: "El proveedor rechazó la sesión. Verifique la configuración OAuth.",
+    OAuthCreateAccount: "No se pudo crear la cuenta OAuth.",
+    EmailCreateAccount: "No se pudo crear la cuenta.",
+    Callback: "Error en el callback de autenticación.",
+    AccessDenied: "Acceso denegado.",
+    Configuration: "Error de configuración del servidor. Contacte al administrador.",
+    Verification: "El token de verificación expiró o es inválido.",
+  }
+  const [error, setError] = useState<string | null>(urlError ? (errorMap[urlError] ?? `Error de autenticación: ${urlError}`) : null)
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault()
@@ -42,31 +54,23 @@ function LoginFormInner() {
     }
     setLoadingCreds(true)
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-      if (!res || res.error) {
-        setError("Credenciales inválidas. Verifique el correo y la contraseña.")
-        toast.error("Credenciales inválidas")
-        return
-      }
       // Determinar rol por email para redirigir al dashboard correcto
       const isAdmin = (ADMIN_EMAILS as readonly string[]).includes(email.toLowerCase().trim())
       const dest = isAdmin ? "/admin" : "/"
-      toast.success("Bienvenido", {
-        description: isAdmin ? "Dashboard Administrador DIDECO" : "Perfil Colaborador",
+      // signIn con redirect=true deja que NextAuth haga la redirección nativa
+      // (más robusto que redirect=false + router.push)
+      await signIn("credentials", {
+        email,
+        password,
+        callbackUrl: dest,
+        redirect: true,
       })
-      // Pequeña espera para que la cookie se asiente, luego redirigir
-      setTimeout(() => {
-        router.push(dest)
-        router.refresh()
-      }, 200)
+      // signIn con redirect=true hace una navegación completa del navegador.
+      // Si las credenciales son inválidas, NextAuth redirige a /login?error=CredentialsSignin
+      // y el componente lee ese error desde la URL (ver errorMap arriba).
     } catch {
       setError("Error de red. Intente nuevamente.")
       toast.error("Error de red")
-    } finally {
       setLoadingCreds(false)
     }
   }
