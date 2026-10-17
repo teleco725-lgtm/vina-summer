@@ -6,6 +6,7 @@ import { generateExcel } from "@/lib/report-excel"
 import { generateWord } from "@/lib/report-word"
 import { generatePptx } from "@/lib/report-pptx"
 import { sanitizeText } from "@/lib/security"
+import { safeQuery, DEMO_RESUMEN_DIA } from "@/lib/db-safe"
 
 export const dynamic = "force-dynamic"
 
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
   let adjunto: { filename: string; content: Buffer; contentType: string } | null = null
   try {
     if (formato !== "ninguno") {
-      const data = await getResumenDia()
+      const data = await safeQuery(() => getResumenDia(), DEMO_RESUMEN_DIA as any)
       const fecha = data.fecha.slice(0, 10)
       if (formato === "pdf") {
         const buf = await generatePdf(data)

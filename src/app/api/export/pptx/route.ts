@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server"
 import { getResumenDia } from "@/lib/resumen-dia"
 import { generatePptx } from "@/lib/report-pptx"
+import { safeQuery, DEMO_RESUMEN_DIA } from "@/lib/db-safe"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const data = await getResumenDia()
+    // safeQuery: si la DB no está disponible (Vercel), usa datos demo
+    const data = await safeQuery(() => getResumenDia(), DEMO_RESUMEN_DIA as any)
     const buf = await generatePptx(data)
     const filename = `informe-diario-colaboradores-${new Date().toISOString().slice(0, 10)}.pptx`
     return new NextResponse(new Uint8Array(buf), {

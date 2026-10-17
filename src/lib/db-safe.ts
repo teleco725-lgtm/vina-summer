@@ -104,3 +104,47 @@ export async function isDbAvailable(): Promise<boolean> {
     return false
   }
 }
+
+/** Resumen día demo para endpoints de exportación cuando la DB no está disponible */
+export const DEMO_RESUMEN_DIA = {
+  fecha: new Date().toISOString(),
+  fechaLabel: new Date().toLocaleDateString("es-CL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }),
+  generadoEn: new Date().toLocaleString("es-CL", { hour: "2-digit", minute: "2-digit" }),
+  totalMetaDia: 50,
+  totalRealizado: 0,
+  cumplimientoGlobal: 0,
+  totalColaboradores: 2,
+  totalRegistros: 0,
+  totalLugaresMonitoreados: 3,
+  colaboradores: [
+    {
+      id: "demo-c1",
+      nombre: "Carolina Pérez",
+      rol: "supervisora",
+      meta: 30,
+      realizado: 0,
+      cumplimiento: 0,
+      lugaresAsignados: [
+        { id: "demo-1", nombre: "Playa El Sol", tipo: "playa", tipoLabel: "Playa", direccion: "Av. Perú", comuna: "Viña del Mar" },
+      ],
+      registros: [],
+    },
+    {
+      id: "demo-c2",
+      nombre: "Rodrigo Soto",
+      rol: "colaborador",
+      meta: 20,
+      realizado: 0,
+      cumplimiento: 0,
+      lugaresAsignados: [
+        { id: "demo-2", nombre: "Piscina Municipal Viña", tipo: "piscina_municipal", tipoLabel: "Piscina Municipal", direccion: "Av. Valparaíso 1015", comuna: "Viña del Mar" },
+      ],
+      registros: [],
+    },
+  ],
+}
