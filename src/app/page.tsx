@@ -7,6 +7,8 @@ import { ColaboradoresSection } from "@/components/dashboard/colaboradores-secti
 import { MatriculasTable } from "@/components/dashboard/matriculas-table"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ChartsSection } from "@/components/dashboard/charts-section"
+import { ExportSection } from "@/components/dashboard/export-section"
+import { EmailSection } from "@/components/dashboard/email-section"
 import {
   Waves,
   ShieldCheck,
@@ -17,6 +19,8 @@ import {
   Sun,
   Lock,
   Footprints,
+  Download,
+  Mail,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -266,6 +270,30 @@ export default async function Home() {
             <span className="text-xs text-muted-foreground">· RUT enmascarado por protección de datos</span>
           </div>
           <MatriculasTable matriculas={matriculasSeguras} />
+        </section>
+
+        {/* Exportar informe (Excel / Word / PDF) */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Download className="h-5 w-5 text-teal-600" />
+            <h3 className="text-base font-semibold text-slate-800">Exportar informe</h3>
+            <span className="text-xs text-muted-foreground">
+              · Excel, Word y PDF como informe profesional
+            </span>
+          </div>
+          <ExportSection />
+        </section>
+
+        {/* Envío por correo electrónico */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-base font-semibold text-slate-800">Envío por correo electrónico</h3>
+            <span className="text-xs text-muted-foreground">
+              · Dirección de Deportes
+            </span>
+          </div>
+          <EmailSection />
         </section>
       </main>
 

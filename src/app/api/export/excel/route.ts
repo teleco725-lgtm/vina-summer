@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server"
+import { getReportData } from "@/lib/report-data"
+import { generateExcel } from "@/lib/report-excel"
+
+export const dynamic = "force-dynamic"
+
+export async function GET() {
+  try {
+    const data = await getReportData()
+    const buf = await generateExcel(data)
+    const filename = `informe-deportivo-vina-${new Date().toISOString().slice(0, 10)}.xlsx`
+    return new NextResponse(new Uint8Array(buf), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    })
+  } catch (e) {
+    console.error("export excel error:", e)
+    return NextResponse.json({ error: "Error al generar el Excel" }, { status: 500 })
+  }
+}

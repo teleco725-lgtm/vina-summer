@@ -60,3 +60,72 @@ Stage Summary:
 - Verificación con Agent Browser: HTTP 200, 11 markers en mapa, filtros funcionan (Playas 6, Piscinas 3, Gimnasios 2), validación RUT rechaza DV incorrecto, formulario válido persista matrícula (5 total), router.refresh actualiza tabla.
 - Lint: 0 errores. Security headers: CSP, HSTS, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, X-Content-Type-Options — todos presentes.
 - Responsive: mobile (iPhone 14) y desktop (1440) verificados. Footer sticky (mt-auto con min-h-screen flex flex-col).
+
+---
+Task ID: 5
+Agent: Frontend components builder
+Task: Crear dos componentes cliente para exportar el informe (Excel/Word/PDF) y enviarlo por correo a la Dirección de Deportes (deportes.dideco@munivina.cl).
+
+Work Log:
+- Leí worklog.md (contexto de tareas 1/2/3/6) y revisé `matricula-form.tsx`, `page.tsx`, shadcn `select.tsx`, `card.tsx`, `button.tsx`, `alert.tsx`, `sonner.tsx` y la API `/api/email` para confirmar contratos.
+- Creé `src/components/dashboard/export-section.tsx` (`'use client'`, componente `ExportSection` sin props):
+  - Card wrapper con `border-none bg-white/70 backdrop-blur shadow-sm p-5 sm:p-6`.
+  - Header con icono Download en círculo gradiente sky→emerald + título "Exportar informe" + subtítulo.
+  - Grid responsive `grid-cols-1 sm:grid-cols-3` con 3 tarjetas descargables (Excel/Word/PDF) usando FileSpreadsheet/FileText/FileDown de lucide-react.
+  - Cada tarjeta: icono coloreado (emerald/sky/teal), Badge con nota ("con fórmulas", "con portada y secciones", "multi-página vector"), título, descripción y botón "Descargar".
+  - Estado de carga por botón (`Record<ExportFormat, boolean>`). Descarga vía `<a>` programático con href a `/api/export/excel|word|pdf` (Content-Disposition dispara la descarga). Toast info al iniciar, success al confirmar (setTimeout 1500ms para resetear loading).
+  - Nota inferior con ShieldCheck: "Los RUT se exportan enmascarados por protección de datos."
+- Creé `src/components/dashboard/email-section.tsx` (`'use client'`, componente `EmailSection` sin props):
+  - Card con header (Mail icon gradiente teal→emerald, título "Envío por correo electrónico", subtítulo).
+  - Bloque "Destinatario" fijo mostrando `deportes.dideco@munivina.cl` con Badge "Destinatario fijo" (no editable).
+  - Form con react-hook-form + zodResolver. Campos: remitenteNombre (req), remitenteEmail (opcional, regex email), asunto (default "Informe Gestión Deportiva - Viña del Mar", req), mensaje (Textarea rows=4), formatoAdjunto (Select pdf/excel/word/ninguno, default pdf).
+  - POST `/api/email` con JSON. Manejo de 3 escenarios:
+    - `enviado=true` → Alert success (CheckCircle2 verde) + toast.success + reset form.
+    - `fallback="mailto"` → Alert info (Info sky) + toast.info + `window.open(mailto, "_blank", "noopener,noreferrer")`.
+    - error/red → Alert destructive + toast.error.
+  - Inline Alert shadcn al tope de CardContent con el resultado.
+  - Botón "Enviar correo" con icono Send, gradiente emerald→teal, spinner Loader2 durante envío.
+  - Nota de seguridad inferior: "El correo se envía cifrado y los datos sensibles van enmascarados."
+  - TypeScript estricto, sin `any`, tipos discriminated union para `EmailResult`.
+- Ejecuté `bun run lint` → 0 errores. Dev server compila OK (GET / 200).
+
+Stage Summary:
+- Artefactos:
+  - `/home/z/my-project/src/components/dashboard/export-section.tsx`
+  - `/home/z/my-project/src/components/dashboard/email-section.tsx`
+- Ambos exportan componentes nombrados (`ExportSection`, `EmailSection`) sin props — listos para importarse desde `src/app/page.tsx` (server component).
+- `bun run lint` ✓ sin errores.
+- Uso en página: agregar `<ExportSection />` y `<EmailSection />` dentro de `<main>` (por ejemplo en una nueva sección "Informe y envío" tras Matrículas). Ejemplo:
+  ```tsx
+  import { ExportSection } from "@/components/dashboard/export-section"
+  import { EmailSection } from "@/components/dashboard/email-section"
+  // ...
+  <section className="grid gap-6 lg:grid-cols-2">
+    <ExportSection />
+    <EmailSection />
+  </section>
+  ```
+- Toaster (sonner) ya está montado en `src/app/layout.tsx`, no requiere cambios adicionales.
+
+---
+Task ID: 2-6 (segunda iteración: exportación + email)
+Agent: main
+Task: Sección de exportación (Excel/Word/PDF como informe profesional) y sección de envío por correo a deportes.dideco@munivina.cl
+
+Work Log:
+- Instaladas dependencias: exceljs, docx, jspdf, jspdf-autotable, nodemailer, @types/nodemailer.
+- src/lib/report-data.ts: datos centralizados (lugares, colaboradores, matrículas, resumen, porTipo, topLugares) con RUT enmascarado.
+- src/lib/report-excel.ts: Excel con 4 hojas (Resumen con KPIs y fórmulas vivas de %, Lugares, Colaboradores, Matrículas). Paleta teal/sky, zebra, bordes, encabezados coloreados.
+- src/lib/report-word.ts: Word con portada (banda color), 6 secciones (Resumen, Distribución, Inventario, Colaboradores, Matrículas, Protección de datos), tablas con cabecera, header/footer con numeración, metadatos.
+- src/lib/report-pdf.ts: PDF multi-página con portada (banda color + KPIs en grid 3x2), tablas autotable con zebra, pie de página con numeración, caja de contacto, metadatos.
+- API routes: /api/export/excel, /api/export/word, /api/export/pdf (GET, force-dynamic, Content-Disposition attachment, Cache-Control no-store).
+- /api/email (POST): nodemailer con SMTP si está configurado, fallback mailto con destinatario fijo deportes.dideco@munivina.cl si no. Genera adjunto (pdf/excel/word) según formatoAdjunto. HTML del correo con header gradient.
+- Componentes (subagente Task 5): export-section.tsx (3 tarjetas Excel/Word/PDF con loading + descarga), email-section.tsx (form con react-hook-form+zod, destinatario fijo, formato adjunto, manejo de enviado/fallback).
+- page.tsx: integradas dos secciones nuevas antes del footer.
+
+Stage Summary:
+- Verificación curl: Excel 12KB (4 hojas ZIP válido), Word 16KB (26 partes con document.xml), PDF 55KB (5 páginas PDF 1.3). Todos HTTP 200.
+- /api/email: devuelve fallback mailto con destinatario deportes.dideco@munivina.cl, asunto, mensaje y adjuntoGenerado=true.
+- Agent Browser: ambas secciones renderizadas, descarga PDF funcionó, formulario email llenado y enviado (mostró resultado fallback), 0 errores de consola.
+- Móvil (iPhone 14): secciones presentes, footer sticky sin overlap (top 6648px de 10639px).
+- Lint: 0 errores.
