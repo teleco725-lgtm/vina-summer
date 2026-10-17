@@ -7,7 +7,7 @@ export function SiteFooter() {
         <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Waves className="h-4 w-4 text-teal-600" />
-            <span className="font-medium">Viña Playas & Piscinas</span>
+            <span className="font-medium">Viña Summer</span>
             <span className="text-slate-400">·</span>
             <span className="text-xs">Municipalidad de Viña del Mar · Deportes DIDECO</span>
           </div>

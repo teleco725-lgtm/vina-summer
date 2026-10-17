@@ -91,7 +91,7 @@ export async function POST(req: Request) {
         auth: { user: smtpUser, pass: smtpPass },
       })
       await transporter.sendMail({
-        from: `"Dashboard Deportivo Viña" <${smtpUser}>`,
+        from: `"Viña Summer" <${smtpUser}>`,
         to: DESTINO,
         replyTo: remitenteEmail || undefined,
         subject: asunto,
@@ -146,7 +146,7 @@ function construirHtml(mensaje: string, nombre: string, email: string): string {
           <strong>Remitente:</strong> ${escapeHtml(nombre || "—")} ${email ? `(${escapeHtml(email)})` : ""}
         </p>
         <p style="margin: 4px 0 0; font-size: 11px; color: #94a3b8;">
-          Correo generado desde el Dashboard Deportivo Municipal · Protección de datos aplicada.
+          Correo generado desde el Viña Summer · Protección de datos aplicada.
         </p>
       </div>
     </div>
@@ -161,7 +161,7 @@ function cuerpoPlain(mensaje: string, nombre: string, email: string): string {
     "Municipalidad de Viña del Mar · Dirección de Deportes · DIDECO",
     `Remitente: ${nombre || "—"} ${email ? `(${email})` : ""}`,
     "",
-    "Nota: Correo generado desde el Dashboard Deportivo Municipal.",
+    "Nota: Correo generado desde el Viña Summer.",
     "Si eligió adjuntar un informe, descárguelo desde el botón de exportación en el dashboard.",
   ].join("\n")
 }

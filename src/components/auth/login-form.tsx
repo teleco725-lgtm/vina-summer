@@ -109,7 +109,7 @@ function LoginFormInner() {
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-emerald-500 text-white shadow-xl shadow-sky-200">
             <Waves className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Viña Playas & Piscinas</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Viña Summer</h1>
           <p className="mt-1 text-sm text-slate-600">Dashboard Municipal · Deportes DIDECO</p>
         </div>
 

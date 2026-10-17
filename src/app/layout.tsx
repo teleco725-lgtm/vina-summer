@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Viña Playas & Piscinas · Dashboard Municipal",
+  title: "Viña Summer · Dashboard Municipal",
   description:
     "Dashboard de gestión de playas, piscinas municipales y gimnasios con piscina de Viña del Mar. Mapa GPS, matrículas y asignación de colaboradores con protección de datos.",
   keywords: [

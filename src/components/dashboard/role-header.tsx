@@ -55,7 +55,7 @@ export function RoleHeader({
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-800">
-                Viña Playas & Piscinas
+                Viña Summer
               </h1>
               <p className="text-[11px] sm:text-xs text-slate-500">
                 {isAdmin
