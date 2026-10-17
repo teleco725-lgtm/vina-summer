@@ -1,0 +1,89 @@
+// Prisma schema — Dashboard Playas y Piscinas Viña del Mar
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Lugares: playas, piscinas municipales y gimnasios municipales con piscina
+model Lugar {
+  id          String   @id @default(cuid())
+  nombre      String
+  /// playa | piscina_municipal | gimnasio_con_piscina
+  tipo        String
+  direccion   String
+  comuna      String
+  lat         Float
+  lng         Float
+  descripcion String?
+  horario     String?
+  // Población máx. permitida (seguridad / aforo)
+  aforo       Int?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  matriculas   Matricula[]
+  colaboradores LugarColaborador[]
+
+  @@index([tipo])
+  @@index([comuna])
+}
+
+/// Colaboradores asignados a lugares
+model Colaborador {
+  id        String   @id @default(cuid())
+  nombre    String
+  /// RUT chileno (dato sensible — se almacena con formato validado)
+  rut       String   @unique
+  telefono  String?
+  email     String?
+  rol       String   @default("colaborador")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  matriculas Matricula[]
+  lugares    LugarColaborador[]
+
+  @@index([rol])
+}
+
+/// Relación N:M entre lugares y colaboradores
+model LugarColaborador {
+  id            String @id @default(cuid())
+  lugarId       String
+  colaboradorId String
+  asignadoEn    DateTime @default(now())
+
+  lugar       Lugar       @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  colaborador Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+
+  @@unique([lugarId, colaboradorId])
+  @@index([colaboradorId])
+}
+
+/// Matrículas / registros del formulario público
+model Matricula {
+  id        String   @id @default(cuid())
+  nombre    String
+  rut       String
+  direccion String
+  comuna    String
+  lugarId   String?
+  colaboradorId String?
+  /// Hash de verificación de integridad (ciberseguridad)
+  firma     String?
+  createdAt DateTime @default(now())
+
+  lugar       Lugar?       @relation(fields: [lugarId], references: [id], onDelete: SetNull)
+  colaborador Colaborador? @relation(fields: [colaboradorId], references: [id], onDelete: SetNull)
+
+  @@index([comuna])
+  @@index([lugarId])
+}
