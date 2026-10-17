@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/dashboard/site-footer"
 import { AdminMapWrapper } from "@/components/dashboard/admin-map-wrapper"
 import { NoticiasTicker } from "@/components/dashboard/noticias-ticker"
 import { AsignarColaborador } from "@/components/dashboard/asignar-colaborador"
+import { ResumenDelDia } from "@/components/dashboard/resumen-dia"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ChartsSection } from "@/components/dashboard/charts-section"
 import { ExportSection } from "@/components/dashboard/export-section"
@@ -17,6 +18,7 @@ import {
   Download,
   Mail,
   BarChart3,
+  CalendarCheck,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -132,6 +134,16 @@ export default async function AdminPage() {
             <span className="text-xs text-muted-foreground">· monitoreo GPS con auto-actualización</span>
           </div>
           <AdminMapWrapper lugaresInicia={lugaresParaMapa} />
+        </section>
+
+        {/* Resumen completo del día — meta vs realizado por colaborador */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-base font-semibold text-slate-800">Resumen del día</h3>
+            <span className="text-xs text-muted-foreground">· meta versus realizado por colaborador</span>
+          </div>
+          <ResumenDelDia />
         </section>
 
         {/* Asignación de colaboradores */}

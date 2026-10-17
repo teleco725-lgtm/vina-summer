@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
-import { getReportData } from "@/lib/report-data"
+import { getResumenDia } from "@/lib/resumen-dia"
 import { generatePdf } from "@/lib/report-pdf"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const data = await getReportData()
+    const data = await getResumenDia()
     const buf = await generatePdf(data)
-    const filename = `informe-deportivo-vina-${new Date().toISOString().slice(0, 10)}.pdf`
+    const filename = `informe-diario-colaboradores-${data.fecha.slice(0, 10)}.pdf`
     return new NextResponse(new Uint8Array(buf), {
       status: 200,
       headers: {

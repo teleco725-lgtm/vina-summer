@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/dashboard/site-footer"
 import { LugaresMapWrapper } from "@/components/dashboard/lugares-map-wrapper"
 import { MatriculaForm } from "@/components/dashboard/matricula-form"
 import { MatriculasTable } from "@/components/dashboard/matriculas-table"
+import { NoticiasTicker } from "@/components/dashboard/noticias-ticker"
 import {
   Waves,
   Sun,
@@ -17,6 +18,7 @@ import {
   Building2,
   Phone,
   Mail as MailIcon,
+  Newspaper,
 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -140,6 +142,16 @@ export default async function Home() {
               <div className="text-xs font-medium text-slate-600 leading-tight">{k.label}</div>
             </div>
           ))}
+        </section>
+
+        {/* Noticias municipales en vivo — para que el colaborador esté informado */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Newspaper className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-base font-semibold text-slate-800">Noticias municipales en vivo</h3>
+            <span className="text-xs text-muted-foreground">· mantente informado antes de registrar</span>
+          </div>
+          <NoticiasTicker />
         </section>
 
         {/* Ficha del colaborador */}

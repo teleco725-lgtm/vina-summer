@@ -148,10 +148,10 @@ const lugares: SeedLugar[] = [
 ]
 
 const colaboradores = [
-  { nombre: "Carolina Pérez", rut: "12.345.678-5", telefono: "+56987654321", rol: "supervisora" },
-  { nombre: "Rodrigo Soto", rut: "9.876.543-2", telefono: "+56981122334", rol: "colaborador" },
-  { nombre: "María González", rut: "15.555.000-K", telefono: "+56995550011", rol: "colaborador" },
-  { nombre: "Javier Muñoz", rut: "18.222.333-4", telefono: "+56973322114", rol: "coordinador" },
+  { nombre: "Carolina Pérez", rut: "12.345.678-5", telefono: "+56987654321", rol: "supervisora", metaDiaria: 30 },
+  { nombre: "Rodrigo Soto", rut: "9.876.543-2", telefono: "+56981122334", rol: "colaborador", metaDiaria: 20 },
+  { nombre: "María González", rut: "15.555.000-K", telefono: "+56995550011", rol: "colaborador", metaDiaria: 20 },
+  { nombre: "Javier Muñoz", rut: "18.222.333-4", telefono: "+56973322114", rol: "coordinador", metaDiaria: 25 },
 ]
 
 async function main() {
@@ -193,12 +193,26 @@ async function main() {
   }
   console.log("✅ Asignaciones creadas")
 
-  // Matrículas de ejemplo
+  // Matrículas de ejemplo — varias del día de hoy (distribuidas en horario)
+  const ahora0 = new Date()
+  const hoy = (h: number, m: number) => {
+    const d = new Date(ahora0)
+    d.setHours(h, m, 0, 0)
+    return d
+  }
   const matriculas = [
-    { nombre: "Ana Riquelme", rut: "17.123.456-7", direccion: "Av. San Martín 100", comuna: "Viña del Mar" },
-    { nombre: "Pedro Fuentes", rut: "14.987.654-3", direccion: "Plaza Vergara 5", comuna: "Viña del Mar" },
-    { nombre: "Camila Rojas", rut: "20.112.233-4", direccion: "Av. Borgoño 15000", comuna: "Viña del Mar" },
-    { nombre: "Diego Bravo", rut: "11.445.667-8", direccion: "Calle Valparaíso 200", comuna: "Viña del Mar" },
+    { nombre: "Ana Riquelme", rut: "17.123.456-7", direccion: "Av. San Martín 100", comuna: "Viña del Mar", fecha: hoy(9, 12) },
+    { nombre: "Pedro Fuentes", rut: "14.987.654-3", direccion: "Plaza Vergara 5", comuna: "Viña del Mar", fecha: hoy(9, 48) },
+    { nombre: "Camila Rojas", rut: "20.112.233-4", direccion: "Av. Borgoño 15000", comuna: "Viña del Mar", fecha: hoy(10, 30) },
+    { nombre: "Diego Bravo", rut: "11.445.667-8", direccion: "Calle Valparaíso 200", comuna: "Viña del Mar", fecha: hoy(11, 5) },
+    { nombre: "Lucía Mendez", rut: "16.234.567-K", direccion: "Av. San Martín 1200", comuna: "Viña del Mar", fecha: hoy(11, 40) },
+    { nombre: "Tomás Vidal", rut: "18.765.432-1", direccion: "Plaza México 10", comuna: "Viña del Mar", fecha: hoy(12, 15) },
+    { nombre: "Sofía Cárdenas", rut: "19.876.543-2", direccion: "Av. Borgoño 14000", comuna: "Viña del Mar", fecha: hoy(13, 22) },
+    { nombre: "Matías Roa", rut: "15.111.222-3", direccion: "Calle Quillota 300", comuna: "Viña del Mar", fecha: hoy(14, 10) },
+    { nombre: "Valentina Díaz", rut: "20.333.444-5", direccion: "Av. Valparaíso 800", comuna: "Viña del Mar", fecha: hoy(14, 55) },
+    { nombre: "Ignacio Tapia", rut: "17.444.555-6", direccion: "Calle Limache 45", comuna: "Viña del Mar", fecha: hoy(15, 30) },
+    { nombre: "Francisca Vera", rut: "16.555.666-7", direccion: "Av. San Martín 1500", comuna: "Viña del Mar", fecha: hoy(16, 5) },
+    { nombre: "Cristóbal Núñez", rut: "18.666.777-8", direccion: "Plaza Vergara 50", comuna: "Viña del Mar", fecha: hoy(16, 40) },
   ]
   for (let i = 0; i < matriculas.length; i++) {
     const m = matriculas[i]
@@ -206,14 +220,17 @@ async function main() {
     const col = colsCreados[i % colsCreados.length]
     await db.matricula.create({
       data: {
-        ...m,
+        nombre: m.nombre,
         rut: formatRut(m.rut),
+        direccion: m.direccion,
+        comuna: m.comuna,
         lugarId: lugar.id,
         colaboradorId: col.id,
+        createdAt: m.fecha,
       },
     })
   }
-  console.log(`✅ ${matriculas.length} matrículas de ejemplo`)
+  console.log(`✅ ${matriculas.length} matrículas de ejemplo (del día)`)
 
   // === NOTICIAS MUNICIPALES (agregadas de múltiples medios) ===
   await db.noticia.deleteMany()

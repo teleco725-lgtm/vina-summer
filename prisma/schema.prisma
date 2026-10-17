@@ -45,6 +45,8 @@ model Colaborador {
   telefono  String?
   email     String?
   rol       String   @default("colaborador")
+  /// Meta diaria de matrículas captadas (objetivo)
+  metaDiaria Int     @default(20)
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

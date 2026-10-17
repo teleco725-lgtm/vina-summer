@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
-import { getReportData } from "@/lib/report-data"
+import { getResumenDia } from "@/lib/resumen-dia"
 import { generatePdf } from "@/lib/report-pdf"
 import { generateExcel } from "@/lib/report-excel"
 import { generateWord } from "@/lib/report-word"
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 })
   }
 
-  const asunto = sanitizeText(body.asunto ?? `Informe Gestión Deportiva - ${new Date().toLocaleDateString("es-CL")}`, 200)
+  const asunto = sanitizeText(body.asunto ?? `Informe Diario Colaboradores - ${new Date().toLocaleDateString("es-CL")}`, 200)
   const mensaje = sanitizeText(body.mensaje ?? "", 3000)
   const remitenteNombre = sanitizeText(body.remitenteNombre ?? "", 120)
   const remitenteEmail = sanitizeText(body.remitenteEmail ?? "", 120)
@@ -40,22 +40,22 @@ export async function POST(req: Request) {
   let adjunto: { filename: string; content: Buffer; contentType: string } | null = null
   try {
     if (formato !== "ninguno") {
-      const data = await getReportData()
-      const fecha = new Date().toISOString().slice(0, 10)
+      const data = await getResumenDia()
+      const fecha = data.fecha.slice(0, 10)
       if (formato === "pdf") {
         const buf = await generatePdf(data)
-        adjunto = { filename: `informe-deportivo-vina-${fecha}.pdf`, content: buf, contentType: "application/pdf" }
+        adjunto = { filename: `informe-diario-colaboradores-${fecha}.pdf`, content: buf, contentType: "application/pdf" }
       } else if (formato === "excel") {
         const buf = await generateExcel(data)
         adjunto = {
-          filename: `informe-deportivo-vina-${fecha}.xlsx`,
+          filename: `informe-diario-colaboradores-${fecha}.xlsx`,
           content: buf,
           contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         }
       } else if (formato === "word") {
         const buf = await generateWord(data)
         adjunto = {
-          filename: `informe-deportivo-vina-${fecha}.docx`,
+          filename: `informe-diario-colaboradores-${fecha}.docx`,
           content: buf,
           contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         }
@@ -127,12 +127,12 @@ function construirHtml(mensaje: string, nombre: string, email: string): string {
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
       <div style="background: linear-gradient(135deg, #0f766e, #0369a1); padding: 24px; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #fff; margin: 0; font-size: 20px;">Informe de Gestión Deportiva</h1>
-        <p style="color: #e0f2fe; margin: 4px 0 0; font-size: 13px;">Municipalidad de Viña del Mar</p>
+        <h1 style="color: #fff; margin: 0; font-size: 20px;">Informe Diario de Colaboradores</h1>
+        <p style="color: #e0f2fe; margin: 4px 0 0; font-size: 13px;">Dirección de Deportes · DIDECO · Municipalidad de Viña del Mar</p>
       </div>
       <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
         ${mensaje ? `<p style="margin: 0 0 12px; line-height: 1.6;">${escapeHtml(mensaje).replace(/\n/g, "<br>")}</p>` : ""}
-        <p style="margin: 12px 0 4px; font-size: 12px; color: #64748b;">Adjunto encontrará el informe completo de playas, piscinas y gimnasios con piscina de la comuna.</p>
+        <p style="margin: 12px 0 4px; font-size: 12px; color: #64748b;">Adjunto encontrará el informe diario con el cumplimiento por colaborador, los registros capturados (con fecha y hora) y los lugares asignados.</p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;">
         <p style="margin: 0; font-size: 12px; color: #64748b;">
           <strong>Remitente:</strong> ${escapeHtml(nombre || "—")} ${email ? `(${escapeHtml(email)})` : ""}
@@ -150,7 +150,7 @@ function cuerpoPlain(mensaje: string, nombre: string, email: string): string {
     mensaje,
     "",
     "---",
-    "Municipalidad de Viña del Mar · Dirección de Deportes",
+    "Municipalidad de Viña del Mar · Dirección de Deportes · DIDECO",
     `Remitente: ${nombre || "—"} ${email ? `(${email})` : ""}`,
     "",
     "Nota: Correo generado desde el Dashboard Deportivo Municipal.",

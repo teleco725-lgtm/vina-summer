@@ -224,3 +224,100 @@ Stage Summary:
   · Asignación real probada: Carolina Pérez 5→6 lugares, toast confirmación.
   · Móvil iPhone 14: footer sticky sin overlap en ambas páginas.
 - Lint: 0 errores. Capturas: download/admin-dashboard.png, download/colaborador-page.png.
+
+---
+Task ID: 2
+Agent: Report generators rewriter
+Task: REESCRIBIR los tres generadores de reporte (Excel/Word/PDF) para producir un DASHBOARD DIARIO POR COLABORADOR (no un inventario municipal general), con meta vs realizado, % cumplimiento, estado y registros con fecha Y hora.
+
+Work Log:
+- Leí `worklog.md` (contexto de Tasks 1/2-6/3/5/7/8/8-final) y los archivos existentes `report-excel.ts`, `report-word.ts`, `report-pdf.ts`, `report-data.ts`, las 3 rutas `/api/export/*`, la ruta `/api/email/route.ts`, el route `/api/resumen-dia/route.ts`, `prisma/schema.prisma`, `src/lib/db.ts`, `src/lib/security.ts` y `package.json`.
+- Confirmé que `ReportData`/`getReportData` solo eran referenciados por los generadores antiguos y las rutas de export/email. No hay consumidores externos del shape extendido de `lugaresAsignados`.
+
+CREAR `src/lib/resumen-dia.ts` (single source of truth, server-side):
+- Exporta tipos `ResumenLugarAsignado` (id, nombre, tipo, tipoLabel, direccion, comuna), `ResumenRegistro` (id, beneficiario, lugar, tipoLugar, hora "HH:MM", fecha "DD-MM-YYYY"), `ResumenColaborador` (id, nombre, rol, meta, realizado, cumplimiento, lugaresAsignados[], registros[]), `ResumenDia` (fecha ISO, fechaLabel, generadoEn, totalMetaDia, totalRealizado, cumplimientoGlobal, totalColaboradores, totalRegistros, totalLugaresMonitoreados, colaboradores[]).
+- `getResumenDia(fecha?)`: mismo rango "día" tz local que el API original (inicio=00:00:00, fin=23:59:59.999), prisma `colaborador.findMany` con `where: { activo: true }`, `orderBy: { nombre: "asc" }`, `include: { lugares: { include: { lugar: true } }, matriculas: { where: { createdAt: { gte, lte } }, orderBy: asc, include: { lugar: true } } }`. Cálculo idéntico al route (cumplimiento = meta>0 ? round(realizado/meta*100) : 0).
+- Helpers extra exportados: `flattenRegistros()` (libro mayor con colaborador+rol, ordenado por hora asc), `flattenLugares()` (matriz colaborador × lugar), `RegistroLedger`, `LugarAsignadoRow`, `estadoCumplimiento()` (✓/⚠/✗ + label), `colorPorCumplimiento()` (hex bg+fg).
+- Se EXTENDIÓ el shape de `lugaresAsignados` con `direccion` y `comuna` (aditivo, no rompe frontend).
+
+REFACTORIZAR `src/app/api/resumen-dia/route.ts`:
+- Reemplazado el cuerpo inline con `import { getResumenDia }` + `return NextResponse.json(await getResumenDia(fechaParam))`. Mantiene los campos originales (fecha, fechaLabel, totalMetaDia, totalRealizado, cumplimientoGlobal, colaboradores) y agrega los nuevos (generadoEn, totalColaboradores, totalRegistros, totalLugaresMonitoreados, direccion/comuna en lugaresAsignados) — cambio aditivo.
+
+REWRITE `src/lib/report-excel.ts` (exceljs):
+- Workbook metadata: creator "Municipalidad de Viña del Mar", title "Informe Diario Colaboradores Deportivos".
+- 3 hojas:
+  1. "Resumen del día": banda teal (merge A1:G2) con "INFORME DIARIO · COLABORADORES DEPORTIVOS", sub-banda con fechaLabel+generadoEn, KPI row de 7 cards (Meta total día, Realizado total, Cumplimiento global %, N° colaboradores, N° registros, Lugares monitoreados, Prom. registros/colab.), tabla principal "Cumplimiento por colaborador" con 7 columnas (Colaborador, Rol, Lugar(es) asignado(s), Meta día, Realizado, % cumplimiento, Estado ✓/⚠/✗). Relleno condicional en celda % (emerald-100/amber-100/red-100). Fila TOTAL con fórmulas `=SUM(D11:D...)` y `=SUM(E11:E...)` para meta y realizado, % global computado.
+  2. "Registros del día": columnas Hora | Fecha | Beneficiario | Lugar asignado | Tipo | Colaborador | Rol. Ordenado por hora asc. Header teal bg white text. Freeze top row. Zebra. Fila TOTAL con conteo.
+  3. "Lugares asignados": columnas Colaborador | Rol | Lugar | Tipo | Dirección | Comuna. Una fila por (colaborador, lugar). Freeze top row. Zebra.
+- Paleta teal/sky/emerald, bordes consistentes, sin funciones dinámicas, sin fórmulas en % (valores computados), SUM solo en fila TOTAL.
+
+REWRITE `src/lib/report-word.ts` (docx):
+- Cover: "DIRECCIÓN DE DEPORTES · DIDECO" + "INFORME DIARIO DE COLABORADORES" + "Municipalidad de Viña del Mar" + banda teal con fechaLabel + generadoEn + nota RUT enmascarados + PageBreak.
+- §1 Resumen del día: intro + KPI table (Indicador | Valor: Meta total, Realizado, Cumplimiento global %, Colaboradores activos, Registros del día, Lugares monitoreados).
+- §2 Cumplimiento por colaborador: tabla con shading condicional en celda % (verde/amarillo/rojo via ShadingType fill), columna Estado, fila TOTAL, párrafo resumen (cuántos cumplieron / en progreso / bajos).
+- §3 Registros capturados del día: tabla Hora | Fecha | Beneficiario | Lugar asignado | Tipo | Colaborador, tableHeader+cantSplit, nota "Total registros del día: N".
+- §4 Lugares asignados por colaborador: tabla Colaborador | Rol | Lugar | Tipo | Dirección.
+- §5 Protección de datos: 7 bullets + contacto deportes.dideco@munivina.cl.
+- Header right italic muted "Informe Diario Colaboradores · Viña del Mar". Footer center "Página X de Y · Documento protegido". Margins 2cm. Line spacing 312. Metadata title/subject.
+
+REWRITE `src/lib/report-pdf.ts` (jsPDF + autotable):
+- Página 1: banda teal+tealDark simulando gradiente, "DIRECCIÓN DE DEPORTES · DIDECO", "INFORME DIARIO DE COLABORADORES DEPORTIVOS", "Municipalidad de Viña del Mar", fechaLabel+generadoEn. Intro. Grid KPI 3x2 (6 tarjetas con barra lateral de color). Tabla "Cumplimiento por colaborador" con autotable (theme: grid, head teal, foot tealDark con TOTAL), hook `didParseCell` colorea celda % y Estado según threshold (green≥100, yellow 50-99, red<50).
+- Página 2: banda teal header "Registros capturados del día" + nota + autotable striped (Hora | Fecha | Beneficiario | Lugar asignado | Tipo | Colaborador) con font 8.5pt.
+- Página 3: banda teal header "Lugares asignados por colaborador" + nota + autotable (Colaborador | Rol | Lugar | Tipo | Dirección | Comuna).
+- Página 4: banda teal header "Protección de datos y ciberseguridad" + nota + 7 bullets con punto teal + caja de contacto (borde teal, bg teal-50) con deportes.dideco@munivina.cl.
+- Footer en todas las páginas: "Informe Diario Colaboradores · Municipalidad de Viña del Mar" (left) + "Página X de Y" (right). PDF metadata (title/author/subject/creator/keywords). Helpers `drawCover`, `drawPageHeader`, `drawFooter`, `colorsForPdf`.
+
+ACTUALIZAR 3 rutas `/api/export/{excel,word,pdf}/route.ts`:
+- Cambio `getReportData` → `getResumenDia`. Las funciones generadoras ahora reciben `ResumenDia`. Filename pattern: `informe-diario-colaboradores-${data.fecha.slice(0, 10)}.xlsx|docx|pdf`. Cabeceras de seguridad preservadas (Content-Type, Content-Disposition attachment, Cache-Control no-store, X-Content-Type-Options nosniff).
+
+ACTUALIZAR `/api/email/route.ts`:
+- Cambio `getReportData` → `getResumenDia`. Filename pattern: `informe-diario-colaboradores-{fecha}.{ext}`. Asunto default: "Informe Diario Colaboradores - {fecha}". HTML cuerpo: "Informe Diario de Colaboradores" + "Dirección de Deportes · DIDECO · Municipalidad de Viña del Mar" + texto adjunto "informe diario con el cumplimiento por colaborador, los registros capturados (con fecha y hora) y los lugares asignados".
+- `src/lib/report-data.ts` se dejó intacto (no se eliminó) — no quedan consumidores activos en el codebase, pero la spec pedía no romper imports.
+
+Verificación smoke tests (curl http://localhost:3000):
+- GET /api/export/excel → 200, 11631 bytes, ctype correcto, Content-Disposition `informe-diario-colaboradores-2026-10-17.xlsx`, security headers intactos (CSP, HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy).
+- GET /api/export/word → 200, 17292 bytes, 26 partes .docx.
+- GET /api/export/pdf → 200, 95046 bytes, PDF 1.3, 5 páginas (la página 1 con la tabla grande se desborda a 2 — autotable paginates automáticamente).
+- GET /api/resumen-dia → 200, JSON con shape extendido (4 colaboradores, 12 registros, 95 meta, 13% cumplimiento global, 11 lugares monitoreados). Cada `lugaresAsignados` ahora incluye `direccion` y `comuna`.
+- POST /api/email con formatoAdjunto=ninguno y =pdf → 200, fallback mailto con destinatario fijo deportes.dideco@munivina.cl.
+- Excel: 3 hojas "Resumen del día", "Registros del día", "Lugares asignados". Shared strings incluyen título "INFORME DIARIO · COLABORADORES DEPORTIVOS", KPI labels, "Cumplimiento por colaborador", datos por colaborador con cumplimiento % (10%, 12%, 15%) y estado "✗ Bajo".
+- Word: 5 secciones + cover + header/footer con paginación confirmados.
+- PDF: texto extraído confirma cover con DIDECO + título, KPIs con valores (95/12/13%/4/12/11), tabla de cumplimiento con 4 colaboradores + TOTAL, headers de páginas 2/3/4, footer "Página X de Y".
+
+Stage Summary:
+- Archivos creados / modificados (rutas absolutas):
+  - CREATED `/home/z/my-project/src/lib/resumen-dia.ts`
+  - MODIFIED `/home/z/my-project/src/app/api/resumen-dia/route.ts`
+  - REWRITTEN `/home/z/my-project/src/lib/report-excel.ts`
+  - REWRITTEN `/home/z/my-project/src/lib/report-word.ts`
+  - REWRITTEN `/home/z/my-project/src/lib/report-pdf.ts`
+  - MODIFIED `/home/z/my-project/src/app/api/export/excel/route.ts`
+  - MODIFIED `/home/z/my-project/src/app/api/export/word/route.ts`
+  - MODIFIED `/home/z/my-project/src/app/api/export/pdf/route.ts`
+  - MODIFIED `/home/z/my-project/src/app/api/email/route.ts`
+  - INTACTO (sin uso) `/home/z/my-project/src/lib/report-data.ts`
+- `bun run lint` ✓ 0 errores. Dev server compila OK (GET / y /admin 200).
+- Nueva estructura: cada reporte exporta un dashboard DIARIO POR COLABORADOR con: lugar(es) asignado(s), usuarios capturados hoy (registros del día con fecha Y hora), meta diaria, realizado, % cumplimiento (con coloreado condicional verde/amarillo/rojo), estado (✓/⚠/✗). El reporte incluye además sección de Lugares asignados (matriz colaborador×lugar con dirección) y nota de Protección de datos con contacto DIDECO. Filename: `informe-diario-colaboradores-{YYYY-MM-DD}.{xlsx|docx|pdf}`.
+- Single source of truth: `getResumenDia()` vive en `src/lib/resumen-dia.ts` y la consume la API `/api/resumen-dia`, los 3 generadores y la ruta `/api/email` — eliminada la duplicación de queries prisma.
+
+---
+Task ID: 9
+Agent: main
+Task: Reformular informe a dashboard de colaboradores + resumen del día (meta vs realizado) en admin + cuadro noticias en colaborador
+
+Work Log:
+- Schema: agregado campo metaDiaria (Int default 20) a Colaborador. Seed actualizado con metas distintas (Carolina 30, Javier 25, María 20, Rodrigo 20) y 12 matrículas distribuidas en el día de hoy.
+- API /api/resumen-dia GET: por colaborador devuelve meta, realizado (matrículas del día), %cumplimiento, lugares asignados y registros con hora+fecha. KPIs globales (totalMeta, totalRealizado, cumplimientoGlobal).
+- Lib compartida src/lib/resumen-dia.ts (getResumenDia + tipos) — usada por API y generadores.
+- (Subagente Task 2) Reescritos report-excel/word/pdf a INFORME DIARIO DASHBOARD enfocado en colaboradores: portada + KPIs + tabla Cumplimiento (Colaborador|Rol|Lugar asignado|Meta|Realizado|%|Estado con colores verde/amarillo/rojo) + tabla Registros del día (Hora|Fecha|Beneficiario|Lugar|Tipo|Colaborador) + tabla Lugares asignados + sección protección datos. Actualizados /api/export/* y /api/email.
+- Componente resumen-dia.tsx: KPIs globales + tabla expandible meta vs realizado con Progress coloreado, estado (OK/Prog/Bajo), y al click muestra detalle de registros del día con hora+fecha+beneficiario+lugar.
+- Página / (colaborador): agregada sección "Noticias municipales en vivo" con NoticiasTicker (para que el colaborador esté informado antes de registrar).
+- Página /admin: agregada sección "Resumen del día" con ResumenDelDia entre mapa tiempo real y asignación de colaboradores.
+
+Stage Summary:
+- Verificado con Agent Browser:
+  · / (colaborador): cuadro de noticias visible con ticker + filtros (Alertas 1, Eventos 3).
+  · /admin: sección "Resumen del día" con tabla meta vs realizado (Carolina 30/3=10% Bajo, Javier 25/3=12%, María 20/3=15%, Rodrigo 20/3=15%), expandible muestra registros del día con hora+fecha+beneficiario+lugar.
+  · Export PDF: 6 páginas, contiene Cumplimiento/Colaborador/Meta/DIDECO/Hora. Excel: 3 hojas.
+  · Móvil: secciones presentes, footer sticky sin overlap.
+- Lint: 0 errores. 0 errores de consola.
