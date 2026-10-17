@@ -58,3 +58,7 @@ worklog.md
 .zscripts/
 .z-ai-config
 agent-ctx/
+
+# Database
+/db/*.db
+/db/*.db-journal
