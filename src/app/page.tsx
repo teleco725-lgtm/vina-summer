@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { TIPO_LABELS, TIPO_COLORS, type TipoLugar } from "@/lib/security"
+import { safeQuery, DEMO_LUGARES, DEMO_COLABORADORES } from "@/lib/db-safe"
 import { RoleHeader } from "@/components/dashboard/role-header"
 import { SiteFooter } from "@/components/dashboard/site-footer"
 import { LugaresMapWrapper } from "@/components/dashboard/lugares-map-wrapper"
@@ -24,16 +25,22 @@ import {
 export const dynamic = "force-dynamic"
 
 export default async function Home() {
-  // "Sesión" del colaborador logueado (demo): el primer colaborador activo
-  const yo = await db.colaborador.findFirst({
-    where: { activo: true },
-    orderBy: { nombre: "asc" },
-    include: {
-      lugares: { include: { lugar: { include: { _count: { select: { matriculas: true } } } } } },
-      matriculas: { take: 10, orderBy: { createdAt: "desc" }, include: { lugar: true } },
-      _count: { select: { lugares: true, matriculas: true } },
-    },
-  })
+  // "Sesión" del colaborador logueado (demo): el primer colaborador activo.
+  // safeQuery: si la DB no está disponible (ej. Vercel serverless), usa datos demo.
+  const yo = await safeQuery(
+    () =>
+      db.colaborador.findFirst({
+        where: { activo: true },
+        orderBy: { nombre: "asc" },
+        include: {
+          lugares: { include: { lugar: { include: { _count: { select: { matriculas: true } } } } } },
+          matriculas: { take: 10, orderBy: { createdAt: "desc" }, include: { lugar: true } },
+          _count: { select: { lugares: true, matriculas: true } },
+        },
+      }),
+    // Fallback demo: simula un colaborador con datos en memoria
+    DEMO_COLABORADORES[0] as Awaited<ReturnType<typeof db.colaborador.findFirst>>,
+  )
 
   if (!yo) {
     return (

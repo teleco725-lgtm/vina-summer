@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sanitizeText, validateRut, formatRut } from "@/lib/security"
 import { getServerRole, requireAdmin } from "@/lib/authz"
+import { safeQuery, DEMO_COLABORADORES } from "@/lib/db-safe"
 
 /** Enmascara RUT para no-admin: 12.345.678-5 → ••.••.678-5 */
 function maskRutForNonAdmin(rut: string, isAdmin: boolean): string {
@@ -12,14 +13,19 @@ function maskRutForNonAdmin(rut: string, isAdmin: boolean): string {
 }
 
 /** GET /api/colaboradores — lista colaboradores con conteo de lugares asignados.
- *  Los RUT se enmascaran para usuarios no-admin (protección de datos). */
+ *  Los RUT se enmascaran para usuarios no-admin (protección de datos).
+ *  Si la DB no está disponible, devuelve colaboradores demo. */
 export async function GET() {
   const { isAdmin } = await getServerRole()
-  const cols = await db.colaborador.findMany({
-    where: { activo: true },
-    orderBy: { nombre: "asc" },
-    include: { _count: { select: { lugares: true, matriculas: true } } },
-  })
+  const cols = await safeQuery(
+    () =>
+      db.colaborador.findMany({
+        where: { activo: true },
+        orderBy: { nombre: "asc" },
+        include: { _count: { select: { lugares: true, matriculas: true } } },
+      }),
+    DEMO_COLABORADORES as Awaited<ReturnType<typeof db.colaborador.findMany>>,
+  )
   // Protección de datos: RUT enmascarado para no-admin
   const safe = cols.map((c) => ({
     id: c.id,

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { TIPO_LABELS, TIPO_COLORS, type TipoLugar } from "@/lib/security"
+import { safeQuery, DEMO_LUGARES, DEMO_COLABORADORES } from "@/lib/db-safe"
 import { RoleHeader } from "@/components/dashboard/role-header"
 import { SiteFooter } from "@/components/dashboard/site-footer"
 import { AdminMapWrapper } from "@/components/dashboard/admin-map-wrapper"
@@ -24,21 +25,31 @@ import {
 export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
+  // safeQuery: si la DB no está disponible (ej. Vercel serverless sin SQLite),
+  // usa datos demo en memoria para que el dashboard renderice sin crashear.
   const [lugares, colaboradores, matriculas] = await Promise.all([
-    db.lugar.findMany({
-      where: { activo: true },
-      orderBy: [{ tipo: "asc" }, { nombre: "asc" }],
-      include: {
-        colaboradores: { include: { colaborador: true } },
-        _count: { select: { matriculas: true } },
-      },
-    }),
-    db.colaborador.findMany({
-      where: { activo: true },
-      orderBy: { nombre: "asc" },
-      include: { _count: { select: { lugares: true, matriculas: true } } },
-    }),
-    db.matricula.count(),
+    safeQuery(
+      () =>
+        db.lugar.findMany({
+          where: { activo: true },
+          orderBy: [{ tipo: "asc" }, { nombre: "asc" }],
+          include: {
+            colaboradores: { include: { colaborador: true } },
+            _count: { select: { matriculas: true } },
+          },
+        }),
+      DEMO_LUGARES as Awaited<ReturnType<typeof db.lugar.findMany>>,
+    ),
+    safeQuery(
+      () =>
+        db.colaborador.findMany({
+          where: { activo: true },
+          orderBy: { nombre: "asc" },
+          include: { _count: { select: { lugares: true, matriculas: true } } },
+        }),
+      DEMO_COLABORADORES as Awaited<ReturnType<typeof db.colaborador.findMany>>,
+    ),
+    safeQuery(() => db.matricula.count(), 0),
   ])
 
   const stats = {

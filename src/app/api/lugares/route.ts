@@ -2,10 +2,12 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { sanitizeText, TIPOS_LUGAR, isValidLat, isValidLng, type TipoLugar } from "@/lib/security"
 import { requireAdmin } from "@/lib/authz"
+import { safeQuery, DEMO_LUGARES } from "@/lib/db-safe"
 
 /**
  * GET /api/lugares — lista lugares (con colaboradores y conteo de matrículas).
  * Query: ?tipo=playa|piscina_municipal|gimnasio_con_piscina & comuna=...
+ * Si la DB no está disponible, devuelve lugares demo.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -16,14 +18,18 @@ export async function GET(req: Request) {
   if (tipo && (TIPOS_LUGAR as readonly string[]).includes(tipo)) where.tipo = tipo
   if (comuna) where.comuna = { contains: comuna }
 
-  const lugares = await db.lugar.findMany({
-    where,
-    orderBy: { tipo: "asc" },
-    include: {
-      colaboradores: { include: { colaborador: true } },
-      _count: { select: { matriculas: true } },
-    },
-  })
+  const lugares = await safeQuery(
+    () =>
+      db.lugar.findMany({
+        where,
+        orderBy: { tipo: "asc" },
+        include: {
+          colaboradores: { include: { colaborador: true } },
+          _count: { select: { matriculas: true } },
+        },
+      }),
+    DEMO_LUGARES as Awaited<ReturnType<typeof db.lugar.findMany>>,
+  )
 
   // Protección de datos: no exponer RUT de colaboradores en el listado público
   const safe = lugares.map((l) => ({
