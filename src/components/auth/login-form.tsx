@@ -42,14 +42,14 @@ function LoginFormInner() {
   const [loadingMs, setLoadingMs] = useState(false)
   // Mostrar error de NextAuth si viene por query param (credenciales inválidas, etc.)
   const errorMap: Record<string, string> = {
-    CredentialsSignin: "Credenciales inválidas. Verifique el correo y la contraseña.",
-    OAuthSignin: "No se pudo conectar con el proveedor. Configure las credenciales OAuth en .env",
-    OAuthCallback: "El proveedor rechazó la sesión. Verifique la configuración OAuth.",
+    CredentialsSignin: "Credenciales inválidas. Verifique el correo y la contraseña. Use las cuentas de acceso rápido que aparecen abajo.",
+    OAuthSignin: "No se pudo conectar con el proveedor OAuth. Use los botones de cuentas demo de Google/Microsoft o configure las credenciales OAuth en el archivo .env.",
+    OAuthCallback: "El proveedor OAuth rechazó la sesión. Verifique la configuración en .env o use las cuentas demo.",
     OAuthCreateAccount: "No se pudo crear la cuenta OAuth.",
     EmailCreateAccount: "No se pudo crear la cuenta.",
-    Callback: "Error en el callback de autenticación.",
+    Callback: "Error en el callback de autenticación. Intente nuevamente.",
     AccessDenied: "Acceso denegado.",
-    Configuration: "Error de configuración del servidor. Contacte al administrador.",
+    Configuration: "Error de configuración del servidor: falta NEXTAUTH_SECRET en el archivo .env. Reinicie el servidor después de verificar.",
     Verification: "El token de verificación expiró o es inválido.",
   }
   const [error, setError] = useState<string | null>(urlError ? (errorMap[urlError] ?? `Error de autenticación: ${urlError}`) : null)
