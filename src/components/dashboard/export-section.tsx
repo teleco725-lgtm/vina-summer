@@ -6,6 +6,7 @@ import {
   FileDown,
   FileSpreadsheet,
   FileText,
+  Presentation,
   Loader2,
   ShieldCheck,
 } from "lucide-react"
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/card"
 import { toast } from "sonner"
 
-type ExportFormat = "excel" | "word" | "pdf"
+type ExportFormat = "excel" | "word" | "pdf" | "pptx"
 
 type ExportOption = {
   id: ExportFormat
@@ -30,9 +31,7 @@ type ExportOption = {
   badge: string
   icon: typeof FileSpreadsheet
   url: string
-  /** Color de acento del ícono */
   accent: string
-  /** Clases del fondo del badge del icono */
   iconWrap: string
 }
 
@@ -40,8 +39,7 @@ const OPTIONS: ExportOption[] = [
   {
     id: "excel",
     title: "Excel",
-    description:
-      "Libro de cálculo con 4 hojas: resumen, lugares, colaboradores y matrículas.",
+    description: "Hoja de cálculo con metas, realizado y registros del día.",
     badge: "con fórmulas",
     icon: FileSpreadsheet,
     url: "/api/export/excel",
@@ -51,9 +49,8 @@ const OPTIONS: ExportOption[] = [
   {
     id: "word",
     title: "Word",
-    description:
-      "Documento editable con portada, secciones temáticas y tablas formateadas.",
-    badge: "con portada y secciones",
+    description: "Documento editable con tablas de cumplimiento y registros.",
+    badge: "editable",
     icon: FileText,
     url: "/api/export/word",
     accent: "text-sky-700",
@@ -62,13 +59,22 @@ const OPTIONS: ExportOption[] = [
   {
     id: "pdf",
     title: "PDF",
-    description:
-      "Informe multi-página vectorial listo para imprimir o adjuntar al correo.",
-    badge: "multi-página vector",
+    description: "Informe multi-página listo para imprimir o adjuntar.",
+    badge: "vectorial",
     icon: FileDown,
     url: "/api/export/pdf",
     accent: "text-teal-700",
     iconWrap: "bg-teal-100 text-teal-700",
+  },
+  {
+    id: "pptx",
+    title: "PowerPoint",
+    description: "Presentación dinámica con KPIs y tablas del día.",
+    badge: "presentación",
+    icon: Presentation,
+    url: "/api/export/pptx",
+    accent: "text-amber-700",
+    iconWrap: "bg-amber-100 text-amber-700",
   },
 ]
 
@@ -77,6 +83,7 @@ export function ExportSection() {
     excel: false,
     word: false,
     pdf: false,
+    pptx: false,
   })
 
   function handleDownload(opt: ExportOption) {
@@ -86,8 +93,6 @@ export function ExportSection() {
       description: "Se iniciará la descarga en breve.",
     })
     try {
-      // El endpoint devuelve el archivo directamente con Content-Disposition.
-      // Usamos un <a> programático para no interferir con la navegación SPA.
       const a = document.createElement("a")
       a.href = opt.url
       a.rel = "noopener"
@@ -100,11 +105,10 @@ export function ExportSection() {
       setLoading((prev) => ({ ...prev, [opt.id]: false }))
       return
     }
-    // Limpiar el estado de carga tras un margen razonable.
     window.setTimeout(() => {
       setLoading((prev) => ({ ...prev, [opt.id]: false }))
       toast.success(`Descarga de ${opt.title} iniciada`)
-    }, 1500)
+    }, 1800)
   }
 
   return (
@@ -119,14 +123,14 @@ export function ExportSection() {
               Exportar informe
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Descarga los datos del dashboard como informe profesional.
+              Informe diario de colaboradores · meta versus realizado y registros del día.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {OPTIONS.map((opt) => {
             const Icon = opt.icon
             const isLoading = loading[opt.id]

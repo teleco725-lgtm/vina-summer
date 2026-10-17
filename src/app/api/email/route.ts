@@ -4,6 +4,7 @@ import { getResumenDia } from "@/lib/resumen-dia"
 import { generatePdf } from "@/lib/report-pdf"
 import { generateExcel } from "@/lib/report-excel"
 import { generateWord } from "@/lib/report-word"
+import { generatePptx } from "@/lib/report-pptx"
 import { sanitizeText } from "@/lib/security"
 
 export const dynamic = "force-dynamic"
@@ -58,6 +59,13 @@ export async function POST(req: Request) {
           filename: `informe-diario-colaboradores-${fecha}.docx`,
           content: buf,
           contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }
+      } else if (formato === "pptx") {
+        const buf = await generatePptx(data)
+        adjunto = {
+          filename: `informe-diario-colaboradores-${fecha}.pptx`,
+          content: buf,
+          contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         }
       }
     }

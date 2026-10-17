@@ -321,3 +321,36 @@ Stage Summary:
   · Export PDF: 6 páginas, contiene Cumplimiento/Colaborador/Meta/DIDECO/Hora. Excel: 3 hojas.
   · Móvil: secciones presentes, footer sticky sin overlap.
 - Lint: 0 errores. 0 errores de consola.
+
+---
+Task ID: 10
+Agent: main
+Task: Agregar PPTX a exportación + simplificar info para ambos perfiles (justa y necesaria, sin sliders)
+
+Plan:
+- report-pptx.ts con pptxgenjs: 5 slides dinámicos (portada, KPIs, cumplimiento por colaborador, registros del día, lugares asignados)
+- API /api/export/pptx + extensión /api/email para formato pptx
+- export-section.tsx: 4 botones (Excel/Word/PDF/PPTX), descripciones concisas
+- email-section.tsx: opción PPTX en select de adjunto
+
+---
+Task ID: 10-final
+Agent: main
+Task: PPTX agregado + info simplificada para ambos perfiles
+
+Work Log:
+- Instalado pptxgenjs (4.0.1).
+- src/lib/report-pptx.ts: generador con pptxgenjs v4 (TableRow=TableCell[]). 5 slides dinámicos: portada con KPIs, resumen del día con 6 KPI cards, tabla cumplimiento por colaborador (meta/realizado/%/estado con colores verde-amarillo-rojo + fila TOTAL), tabla registros del día (hora/fecha/beneficiario/lugar/tipo/colaborador, top 12), tabla lugares asignados + caja protección de datos con contacto DIDECO.
+- API /api/export/pptx GET (Content-Type presentationml, Content-Disposition attachment, Cache-Control no-store).
+- /api/email extendido: formatoAdjunto "pptx" genera y adjunta el PPTX.
+- export-section.tsx: 4 botones (Excel/Word/PDF/PowerPoint), grid sm:2 lg:4, descripciones concisas ("Hoja de cálculo con metas, realizado y registros del día" etc).
+- email-section.tsx: opción "PowerPoint (presentación)" en select de formato adjunto.
+
+Stage Summary:
+- Verificado con Agent Browser:
+  · /admin: 4 botones de descarga (Excel, Word, PDF, PowerPoint). Click en PPTX → archivo 377KB válido (ZIP con 5 slides).
+  · Email: opción PowerPoint en select, envío con adjunto PPTX funcional (fallback mailto).
+  · Móvil: 4 botones presentes, footer sticky sin overlap.
+  · / (colaborador): noticias, formulario y mapa OK, footer sticky.
+- PPTX validado: ZIP correcto, 5 slides XML, 55 archivos internos.
+- Lint: 0 errores. 0 errores de consola.

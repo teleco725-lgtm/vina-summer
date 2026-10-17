@@ -68,7 +68,7 @@ const formSchema = z.object({
     .min(5, "El asunto es obligatorio")
     .max(200, "Asunto demasiado largo"),
   mensaje: z.string().max(3000, "Mensaje demasiado largo").optional(),
-  formatoAdjunto: z.enum(["pdf", "excel", "word", "ninguno"]),
+  formatoAdjunto: z.enum(["pdf", "excel", "word", "pptx", "ninguno"]),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -91,11 +91,12 @@ type EmailResult =
     }
 
 const FORMATO_OPTIONS: {
-  value: "pdf" | "excel" | "word" | "ninguno"
+  value: "pdf" | "excel" | "word" | "pptx" | "ninguno"
   label: string
 }[] = [
   { value: "pdf", label: "PDF (informe profesional)" },
-  { value: "excel", label: "Excel (libro de cálculo)" },
+  { value: "pptx", label: "PowerPoint (presentación)" },
+  { value: "excel", label: "Excel (hoja de cálculo)" },
   { value: "word", label: "Word (documento)" },
   { value: "ninguno", label: "Sin adjunto" },
 ]
