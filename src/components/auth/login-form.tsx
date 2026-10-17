@@ -321,6 +321,14 @@ function LoginFormInner() {
               <Lock className="h-3.5 w-3.5 text-sky-600" /> Ciberseguridad
             </span>
           </div>
+          <a
+            href="/manual"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-medium text-teal-700 hover:bg-teal-100 transition-colors"
+          >
+            📖 Manual de uso
+          </a>
           <p className="text-[11px] text-slate-400">
             Municipalidad de Viña del Mar · Dirección de Deportes DIDECO
           </p>

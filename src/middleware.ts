@@ -41,7 +41,9 @@ export async function middleware(req: NextRequest) {
   // --- 2. Rutas públicas (no requieren auth) ---
   const isPublic =
     pathname === "/login" ||
+    pathname === "/manual" ||
     pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/manual/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
     pathname.includes(".")

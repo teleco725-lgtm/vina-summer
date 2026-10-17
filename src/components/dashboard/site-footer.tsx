@@ -1,4 +1,5 @@
-import { Waves, ShieldCheck, Lock, MapPin } from "lucide-react"
+import { Waves, ShieldCheck, Lock, MapPin, BookOpen } from "lucide-react"
+import Link from "next/link"
 
 export function SiteFooter() {
   return (
@@ -12,13 +13,20 @@ export function SiteFooter() {
             <span className="text-xs">Municipalidad de Viña del Mar · Deportes DIDECO</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
+            <Link
+              href="/manual"
+              target="_blank"
+              className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 font-medium text-teal-700 hover:bg-teal-100 transition-colors"
+            >
+              <BookOpen className="h-3.5 w-3.5" /> Manual de uso
+            </Link>
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Protección de datos
             </span>
             <span className="inline-flex items-center gap-1">
               <Lock className="h-3.5 w-3.5 text-sky-600" /> Ciberseguridad
             </span>
-            <span className="inline-flex items-center gap-1">
+            <span className="hidden sm:inline-flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5 text-teal-600" /> © OpenStreetMap
             </span>
           </div>
