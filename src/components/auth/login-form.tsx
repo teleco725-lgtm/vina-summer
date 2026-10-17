@@ -19,7 +19,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ADMIN_EMAILS, DEMO_EMAIL, DEMO_PASSWORD, ADMIN_PASSWORD } from "@/lib/admin-emails"
+import {
+  ADMIN_EMAILS,
+  DEMO_EMAIL,
+  DEMO_PASSWORD,
+  ADMIN_PASSWORD,
+  DEMO_GOOGLE_EMAIL,
+  DEMO_GOOGLE_PASSWORD,
+  DEMO_MICROSOFT_EMAIL,
+  DEMO_MICROSOFT_PASSWORD,
+} from "@/lib/admin-emails"
 
 function LoginFormInner() {
   const params = useSearchParams()
@@ -80,8 +89,27 @@ function LoginFormInner() {
     if (provider === "google") setLoadingGoogle(true)
     else setLoadingMs(true)
     try {
-      // El callback redirect=true lleva a NextAuth que luego va a callbackUrl
-      await signIn(provider, { callbackUrl })
+      // Verificar si el proveedor OAuth real está configurado consultando /api/auth/providers
+      const res = await fetch("/api/auth/providers")
+      const providers = (await res.json()) as Record<string, { id: string }>
+      const isConfigured = Object.values(providers).some((p) => p.id === provider)
+
+      if (isConfigured) {
+        // OAuth real configurado → redirige a Google/Microsoft
+        await signIn(provider, { callbackUrl })
+      } else {
+        // OAuth no configurado → usar cuenta demo vía credenciales
+        const demoEmail = provider === "google" ? DEMO_GOOGLE_EMAIL : DEMO_MICROSOFT_EMAIL
+        const demoPass = provider === "google" ? DEMO_GOOGLE_PASSWORD : DEMO_MICROSOFT_PASSWORD
+        const isAdmin = (ADMIN_EMAILS as readonly string[]).includes(demoEmail.toLowerCase().trim())
+        const dest = isAdmin ? "/admin" : "/"
+        await signIn("credentials", {
+          email: demoEmail,
+          password: demoPass,
+          callbackUrl: dest,
+          redirect: true,
+        })
+      }
     } catch {
       setError("No se pudo iniciar sesión con el proveedor.")
       setLoadingGoogle(false)
@@ -96,6 +124,14 @@ function LoginFormInner() {
   function llenarAdmin() {
     setEmail(ADMIN_EMAILS[0])
     setPassword(ADMIN_PASSWORD)
+  }
+  function llenarGoogle() {
+    setEmail(DEMO_GOOGLE_EMAIL)
+    setPassword(DEMO_GOOGLE_PASSWORD)
+  }
+  function llenarMicrosoft() {
+    setEmail(DEMO_MICROSOFT_EMAIL)
+    setPassword(DEMO_MICROSOFT_PASSWORD)
   }
 
   return (
@@ -228,17 +264,35 @@ function LoginFormInner() {
             {/* Cuentas demo rápidas */}
             <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-3 space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-sky-800">
-                <Info className="h-3.5 w-3.5" /> Cuentas de acceso rápido
+                <Info className="h-3.5 w-3.5" /> Cuentas de acceso rápido (demo)
               </div>
               <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={llenarGoogle}
+                  className="rounded-lg border border-red-200 bg-white/70 px-2.5 py-1.5 text-left text-[11px] text-slate-700 hover:bg-white transition-colors"
+                >
+                  <span className="block font-semibold text-red-600">Cuenta Google</span>
+                  <span className="block truncate">{DEMO_GOOGLE_EMAIL}</span>
+                  <span className="block text-muted-foreground">{DEMO_GOOGLE_PASSWORD}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={llenarMicrosoft}
+                  className="rounded-lg border border-blue-200 bg-white/70 px-2.5 py-1.5 text-left text-[11px] text-slate-700 hover:bg-white transition-colors"
+                >
+                  <span className="block font-semibold text-blue-600">Cuenta Microsoft</span>
+                  <span className="block truncate">{DEMO_MICROSOFT_EMAIL}</span>
+                  <span className="block text-muted-foreground">{DEMO_MICROSOFT_PASSWORD}</span>
+                </button>
                 <button
                   type="button"
                   onClick={llenarDemo}
                   className="rounded-lg border border-sky-200 bg-white/70 px-2.5 py-1.5 text-left text-[11px] text-slate-700 hover:bg-white transition-colors"
                 >
-                  <span className="block font-semibold text-sky-700">Colaborador</span>
+                  <span className="block font-semibold text-sky-700">Colaborador municipal</span>
                   <span className="block truncate">{DEMO_EMAIL}</span>
-                  <span className="block text-muted-foreground">demo1234</span>
+                  <span className="block text-muted-foreground">{DEMO_PASSWORD}</span>
                 </button>
                 <button
                   type="button"
@@ -250,6 +304,9 @@ function LoginFormInner() {
                   <span className="block text-muted-foreground">{ADMIN_PASSWORD}</span>
                 </button>
               </div>
+              <p className="text-[10px] text-muted-foreground pt-1">
+                También puede iniciar sesión con cualquier email <span className="font-semibold">@gmail.com</span>, <span className="font-semibold">@outlook.com</span>, <span className="font-semibold">@hotmail.com</span> o <span className="font-semibold">@live.com</span> usando la contraseña <code className="rounded bg-slate-100 px-1">{DEMO_PASSWORD}</code>.
+              </p>
             </div>
           </CardContent>
         </Card>

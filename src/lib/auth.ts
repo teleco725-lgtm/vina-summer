@@ -2,7 +2,19 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import AzureADProvider from "next-auth/providers/azure-ad"
-import { isAdminEmail, DEMO_EMAIL, DEMO_PASSWORD, ADMIN_PASSWORD, ADMIN_EMAILS } from "@/lib/admin-emails"
+import {
+  isAdminEmail,
+  ADMIN_EMAILS,
+  ADMIN_PASSWORD,
+  DEMO_EMAIL,
+  DEMO_PASSWORD,
+  DEMO_GOOGLE_EMAIL,
+  DEMO_GOOGLE_PASSWORD,
+  DEMO_GOOGLE_NAME,
+  DEMO_MICROSOFT_EMAIL,
+  DEMO_MICROSOFT_PASSWORD,
+  DEMO_MICROSOFT_NAME,
+} from "@/lib/admin-emails"
 
 /**
  * Configuración NextAuth.
@@ -32,9 +44,31 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase().trim()
         const password = credentials.password ?? ""
 
-        // Cuenta demo (colaborador)
+        // Cuenta demo colaborador (municipal)
         if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
           return { id: "demo", email, name: "Colaborador Demo", role: "colaborador" as const }
+        }
+        // Cuenta demo Google (@gmail.com)
+        if (email === DEMO_GOOGLE_EMAIL && password === DEMO_GOOGLE_PASSWORD) {
+          return { id: "demo-google", email, name: DEMO_GOOGLE_NAME, role: "colaborador" as const }
+        }
+        // Cuenta demo Microsoft (@outlook.com)
+        if (email === DEMO_MICROSOFT_EMAIL && password === DEMO_MICROSOFT_PASSWORD) {
+          return { id: "demo-microsoft", email, name: DEMO_MICROSOFT_NAME, role: "colaborador" as const }
+        }
+        // Cualquier email @gmail.com o @outlook.com/@hotmail.com/@live.com con la contraseña demo
+        // (simula login OAuth con cuenta personal válida de Google/Microsoft)
+        const isGoogleAccount = email.endsWith("@gmail.com")
+        const isMicrosoftAccount =
+          email.endsWith("@outlook.com") ||
+          email.endsWith("@hotmail.com") ||
+          email.endsWith("@live.com") ||
+          email.endsWith("@msn.com")
+        if ((isGoogleAccount || isMicrosoftAccount) && password === DEMO_PASSWORD) {
+          const name = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+          const provider = isGoogleAccount ? "google" : "azure-ad"
+          const role = isAdminEmail(email) ? ("admin" as const) : ("colaborador" as const)
+          return { id: email, email, name, role, provider }
         }
         // Cuentas admin — aceptan la contraseña admin demo
         if ((ADMIN_EMAILS as readonly string[]).includes(email) && password === ADMIN_PASSWORD) {
@@ -58,12 +92,16 @@ export const authOptions: NextAuthOptions = {
       : []),
 
     // 3. Microsoft / Azure AD (si hay credenciales)
+    //    tenant "consumers" → usa login.live.com (cuentas personales Microsoft)
     ...(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET
       ? [
           AzureADProvider({
             clientId: process.env.MICROSOFT_CLIENT_ID,
             clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-            tenantId: process.env.MICROSOFT_TENANT ?? "common",
+            // "consumers" = solo cuentas personales (login.live.com)
+            // "common" = cuentas personales + organizacionales
+            // "organizations" = solo cuentas organizacionales (Azure AD)
+            tenantId: process.env.MICROSOFT_TENANT ?? "consumers",
           }),
         ]
       : []),
