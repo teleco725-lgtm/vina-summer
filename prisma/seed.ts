@@ -215,6 +215,73 @@ async function main() {
   }
   console.log(`✅ ${matriculas.length} matrículas de ejemplo`)
 
+  // === NOTICIAS MUNICIPALES (agregadas de múltiples medios) ===
+  await db.noticia.deleteMany()
+  const ahora = new Date()
+  const horas = (h: number) => new Date(ahora.getTime() - h * 3600 * 1000)
+
+  // Asignar algunas noticias a lugares específicos
+  const playaElSol = lugaresCreados.find((l) => l.nombre === "Playa El Sol")
+  const piscinaVina = lugaresCreados.find((l) => l.nombre === "Piscina Municipal Viña del Mar")
+  const sausalito = lugaresCreados.find((l) => l.nombre === "Gimnasio Municipal Sausalito")
+  const renaca = lugaresCreados.find((l) => l.nombre === "Playa 5to Sector Reñaca")
+
+  const noticias = [
+    {
+      titulo: "Municipalidad abre temporada de verano con plan de salvavidas en playas de Viña",
+      resumen: "La Dirección de Deportes DIDECO confirma despliegue de 60 salvavidas en playas El Sol, Acapulco y Reñaca desde este fin de semana.",
+      fuente: "municipal", medio: "Municipalidad de Viña del Mar", categoria: "evento",
+      lugarId: playaElSol?.id, lat: playaElSol?.lat, lng: playaElSol?.lng, publicadaEn: horas(2),
+    },
+    {
+      titulo: "Piscina Municipal de Viña del Mar reabre tras mantención",
+      resumen: "Tras dos semanas de trabajos, la piscina temperada retoma atención al público con cupos limitados por aforo.",
+      fuente: "prensa", medio: "El Mercurio Valparaíso", categoria: "info",
+      lugarId: piscinaVina?.id, lat: piscinaVina?.lat, lng: piscinaVina?.lng, publicadaEn: horas(5),
+    },
+    {
+      titulo: "Alerta de oleaje anómalo en costa de la Región de Valparaíso",
+      resumen: "ONEMI recomienda precaución en playas del litoral central. Se mantiene bandera amarilla en Reñaca.",
+      fuente: "television", medio: "TVN 24 Horas", categoria: "alerta",
+      lugarId: renaca?.id, lat: renaca?.lat, lng: renaca?.lng, publicadaEn: horas(1),
+    },
+    {
+      titulo: "Gimnasio Sausalito amplía horario de piscina temperada",
+      resumen: "Nuevo bloque vespertino de 16:00 a 18:00 hrs para natación libre, gratuito con inscripción municipal.",
+      fuente: "radio", medio: "Radio Valparaíso", categoria: "info",
+      lugarId: sausalito?.id, lat: sausalito?.lat, lng: sausalito?.lng, publicadaEn: horas(8),
+    },
+    {
+      titulo: "Exitosa jornada de natación escolar en piscina municipal",
+      resumen: "Más de 200 estudiantes participaron del encuentro deportivo organizado por DIDECO.",
+      fuente: "redes", medio: "Instagram @deportesvina", categoria: "evento",
+      lugarId: piscinaVina?.id, lat: piscinaVina?.lat, lng: piscinaVina?.lng, publicadaEn: horas(14),
+    },
+    {
+      titulo: "Municipio convoca a colaboradores deportivos para temporada estival",
+      resumen: "DIDECO llama a inscribirse como colaborador en playas y piscinas. Cupos en el dashboard municipal.",
+      fuente: "municipal", medio: "Municipalidad de Viña del Mar", categoria: "info",
+      publicadaEn: horas(20),
+    },
+    {
+      titulo: "Reportan alta afluencia en Playa El Sol durante fin de semana",
+      resumen: "Aforo alcanzó el 75% según reporte de salvavidas. Se recomienda llegar temprano.",
+      fuente: "prensa", medio: "La Estrella de Valparaíso", categoria: "info",
+      lugarId: playaElSol?.id, lat: playaElSol?.lat, lng: playaElSol?.lng, publicadaEn: horas(26),
+    },
+    {
+      titulo: "Programa 'Verano Sano' activa puntos de hidratación en playas",
+      resumen: "La Municipalidad instala puntos de agua gratuita en Acapulco, Caleta Abarca y Reñaca.",
+      fuente: "municipal", medio: "Municipalidad de Viña del Mar", categoria: "evento",
+      publicadaEn: horas(30),
+    },
+  ]
+
+  for (const n of noticias) {
+    await db.noticia.create({ data: n })
+  }
+  console.log(`✅ ${noticias.length} noticias municipales`)
+
   console.log("🌱 Seed completo.")
 }
 

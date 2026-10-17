@@ -30,6 +30,7 @@ model Lugar {
 
   matriculas   Matricula[]
   colaboradores LugarColaborador[]
+  noticias     Noticia[]
 
   @@index([tipo])
   @@index([comuna])
@@ -87,3 +88,30 @@ model Matricula {
   @@index([comuna])
   @@index([lugarId])
 }
+
+/// Noticias municipales agregadas desde múltiples medios (prensa, radio, redes, municipal)
+model Noticia {
+  id        String   @id @default(cuid())
+  titulo    String
+  resumen   String
+  url       String?
+  /// municipal | prensa | radio | redes | television
+  fuente    String
+  medio     String   // nombre del medio: "Municipalidad de Viña", "El Mercurio", "Radio Valparaíso"...
+  /// alerta | info | evento | cierre
+  categoria String   @default("info")
+  /// lugar afectado (opcional)
+  lugarId   String?
+  lat       Float?
+  lng       Float?
+  activa    Boolean  @default(true)
+  publicadaEn DateTime
+  createdAt DateTime @default(now())
+
+  lugar Lugar? @relation(fields: [lugarId], references: [id], onDelete: SetNull)
+
+  @@index([categoria])
+  @@index([fuente])
+  @@index([publicadaEn])
+}
+

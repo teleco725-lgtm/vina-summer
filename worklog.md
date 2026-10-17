@@ -146,3 +146,81 @@ Work Log:
 
 Stage Summary:
 - Verificado con Agent Browser: Todos=11, Playas=6, Piscinas=3, Gimnasios=2 opciones correctas. 0 errores de consola. Lint pasa.
+
+---
+Task ID: 8
+Agent: main
+Task: Reestructurar sitio en dos vistas: / (perfil Colaborador) y /admin (Dashboard Administrador DIDECO con mapa tiempo real + noticias + asignación)
+
+Plan:
+- Backend: modelo Noticia (fuentes: municipal, prensa, radio, redes) + seed + API /api/noticias
+- / (Colaborador): vista operativa del colaborador logueado (sus lugares, matriculas, mapa, formulario)
+- /admin (DIDECO): dashboard con privilegios: mapa tiempo real (auto-refresh), noticias municipales ticker, asignación de colaboradores a lugares con filtro playa/piscina + nombres de colaboradores, stats, charts, export
+
+---
+Task ID: 3
+Agent: Admin components builder
+Task: Crear dos componentes cliente para el dashboard admin: (1) NoticiasTicker (ticker en vivo con auto-refresh 30s) y (2) AsignarColaborador (panel de asignación con filtro por tipo + selector de colaborador).
+
+Work Log:
+- Leí `worklog.md` (contexto de Tasks 1/2/3/5/6/7/8) y los componentes existentes `lugares-list.tsx`, `matricula-form.tsx`, `export-section.tsx`, `email-section.tsx` para alinear estilo (Card `border-none bg-white/70 backdrop-blur shadow-sm`, pills con `bg-slate-800 text-white` activas, gradientes teal/emerald, iconos lucide).
+- Leí `src/lib/security.ts` (TIPO_LABELS, TIPO_COLORS, TipoLugar), `src/components/ui/select.tsx`, `badge.tsx`, y los API routes `/api/noticias`, `/api/colaboradores`, `/api/lugares`, `/api/lugares/[id]/colaboradores` para confirmar los contratos de respuesta.
+- Creé `src/components/dashboard/noticias-ticker.tsx` (`'use client'`, export nombrado `NoticiasTicker` sin props):
+  - Tipos estrictos: `Fuente` (5 valores), `Categoria` (4 valores), `Noticia`, `FiltroCategoria`. Maps `FUENTE_STYLE` (municipal=teal/Building2, prensa=sky/Newspaper, radio=violet/Radio, redes=pink/Instagram, television=amber/Tv) y `CATEGORIA_STYLE` (alerta=red/AlertTriangle, info=slate/Info, evento=emerald/Calendar, cierre=orange/Ban).
+  - Estado: `noticias`, `loading` (carga inicial), `refetching` (cada 30s), `lastUpdate`, `filtro`, `error`.
+  - `fetchNoticias` con `useCallback` + `useEffect` que arranca la carga inicial y programa `setInterval(30s)` con cleanup `clearInterval` en unmount.
+  - Header: icono Newspaper en círculo gradiente teal→emerald, título "Noticias municipales en vivo", badge "EN VIVO" con punto rojo pulsante (`animate-ping`), y "Actualizado: HH:MM:SS" / "actualizando…" a la derecha (hidden en móvil).
+  - Marquee horizontal de las últimas 5 headlines con CSS `@keyframes vina-marquee` (translateX 0 → -50%) inyectado vía `<style dangerouslySetInnerHTML>`. Items duplicados ×2 para loop infinito. Pause on hover (`:hover .vina-marquee-track { animation-play-state: paused }`). Cada item: badge fuente coloreado + título + separador. Gradientes blancos a los lados para fundido.
+  - Pills de filtro (Todos / Alertas / Eventos / Info) con conteos, mismo estilo que lugares-list.
+  - Lista scrollable `max-h-96 overflow-y-auto` con scrollbar teal custom (`.vina-scroll`). Cada card: badge fuente + badge categoría + medio + tiempo relativo (`hace X min/h/d` función manual); título semibold; resumen `line-clamp-3`; chip "📍 lugar" coloreado con TIPO_COLORS; botón "Ver fuente" con ExternalLink.
+  - Skeleton (3 cards `animate-pulse`) en carga inicial; estado error (rojo); estado vacío (borde dashed).
+- Creé `src/components/dashboard/asignar-colaborador.tsx` (`'use client'`, export nombrado `AsignarColaborador` sin props):
+  - Tipos estrictos: `ColabMini`, `LugarItem`, `Colaborador`, `FiltroTipo`. Map `FILTROS` (Todos/Playas/Piscinas/Gimnasios con iconos MapPin/Waves/Droplets/Dumbbell) y `ICON_FOR_TIPO`.
+  - Estado: `lugares`, `colaboradores`, `loading`, `filtroTipo`, `colabFiltro` (id o "todos"), `pending` (Record<lugarId, boolean>), `inlineReset` (Record<lugarId, number> para remontar Select inline tras asignar).
+  - `fetchLugares` + `fetchColaboradores` con `useCallback`; `useEffect` carga ambas en paralelo con flag `active` para evitar set tras unmount.
+  - Header: icono UserCog en círculo gradiente teal→emerald, título "Asignación de colaboradores", subtítulo.
+  - Row 1: pills de tipo (mismo patrón que lugares-list, con conteos).
+  - Row 2: Select "Filtrar por colaborador" (Todos los colaboradores + cada colaborador). Al seleccionar uno, las tarjetas muestran "✓ Asignado a {firstName}" (emerald, con ring) o botón "＋ Asignar a {firstName}" (gradiente emerald→teal).
+  - Lista grid responsive `sm:grid-cols-2` en contenedor `max-h-[520px] overflow-y-auto vina-scroll`. Cada card: icono tipo en cuadrado coloreado, nombre, badge tipo (TIPO_LABELS con TIPO_COLORS), dirección, avatares de colaboradores actuales (initials, max 4 + "+N"), y en el footer la acción.
+  - Modo default (sin colaborador seleccionado): cada card tiene un Select inline "＋ Asignar colaborador…" que lista todos los colaboradores. Al elegir uno, dispara `handleAssign`. El `key` del Select incluye `inlineReset[lugarId]` para forzar remount y resetear al placeholder tras cada asignación. Mientras pending, se reemplaza el Select por "Asignando…" con spinner.
+  - `handleAssign(lugarId, colaboradorId)`: optimista (agrega el colaborador a la card inmediatamente), POST `/api/lugares/[id]/colaboradores` con `{ colaboradorId }`, toast.success "Colaborador asignado" (o toast.info "Ya estaba asignado" si el backend responde `message: "Ya asignado"`), refetch de lugares para consistencia, rollback + toast.error en fallo, cleanup del estado pending.
+  - Skeleton grid (4 cards) en carga; estado vacío con borde dashed.
+- Ejecuté `bun run lint` → 0 errores (exit 0).
+- Verifiqué dev.log: sin errores de compilación de los nuevos archivos.
+- Smoke test APIs: `/api/lugares` 200, `/api/colaboradores` 200. `/api/noticias` devuelve 500 debido a un singleton de Prisma Client cacheado en `globalThis` (el `db` fue instanciado antes de que se regenerara el cliente con el modelo `Noticia`); el `NoticiasTicker` maneja este escenario con el estado de error graceful ("No se pudieron cargar las noticias. Intente nuevamente."). Este es un problema de infraestructura backend pre-existente (Task 8 lista el modelo Noticia + seed como "Plan" aún no ejecutado), fuera del alcance de crear los dos componentes. Al reiniciar el dev server y/o correr el seed, el ticker mostrará las noticias.
+
+Stage Summary:
+- Artefactos:
+  - `/home/z/my-project/src/components/dashboard/noticias-ticker.tsx` (componente `NoticiasTicker`)
+  - `/home/z/my-project/src/components/dashboard/asignar-colaborador.tsx` (componente `AsignarColaborador`)
+- Ambos exportan componentes nombrados sin props — listos para importarse desde `src/app/page.tsx` (o `/admin`):
+  ```tsx
+  import { NoticiasTicker } from "@/components/dashboard/noticias-ticker"
+  import { AsignarColaborador } from "@/components/dashboard/asignar-colaborador"
+  // ...
+  <NoticiasTicker />
+  <AsignarColaborador />
+  ```
+- TypeScript estricto, sin `any`. Responsive mobile-first (grids colapsan a 1 columna en móvil). Estilo visual consistente con los componentes existentes (gradient teal/emerald, rounded-xl, lucide icons, pills bg-slate-800 activas).
+- `bun run lint` ✓ 0 errores. No se tocaron otros archivos.
+
+---
+Task ID: 8-final
+Agent: main
+Task: Reestructuración completada — / (Colaborador) + /admin (DIDECO)
+
+Work Log:
+- Backend: modelo Noticia (fuentes: municipal/prensa/radio/redes/TV) + seed con 8 noticias realistas + API /api/noticias GET con filtros.
+- Componentes (subagente Task 3): noticias-ticker (marquee + lista auto-refresh 30s + pills categorías), asignar-colaborador (filtro tipo + selector colaborador + asignación optimista). role-header.tsx (switch rol Colaborador/Admin DIDECO). site-footer.tsx (compartido). admin-map-wrapper.tsx (auto-refresh 30s + badge EN VIVO + alertas activas).
+- Reescrito src/app/page.tsx → Perfil Colaborador: sesión del primer colaborador, KPIs propios, ficha, mis lugares asignados, mapa de mis lugares, formulario con filtro playa/piscina, mis matrículas.
+- Creado src/app/admin/page.tsx → Dashboard Administrador DIDECO: hero admin, stats, noticias en vivo, mapa tiempo real, asignación de colaboradores con filtro, charts, export, email.
+- Fix SSR: admin-map-wrapper usaba LugaresMap directo (window not defined) → cambiado a LugaresMapWrapper (dynamic ssr:false).
+
+Stage Summary:
+- Verificado con Agent Browser:
+  · / (colaborador): saludo "Hola Carolina", ficha, 5 lugares asignados, formulario con filtro Todos5/Playas3/Piscinas2, matrículas. 0 errores.
+  · /admin: hero admin, Noticias en vivo (8 noticias, ticker + filtros Todos8/Alertas1/Eventos3/Info4), Mapa tiempo real (botón Actualizar, EN VIVO), Asignación (filtro Todos11/Playas6/Piscinas3/Gimnasios2 + selector colaborador), charts, export, email.
+  · Navegación / ↔ /admin vía switch de rol funcional.
+  · Asignación real probada: Carolina Pérez 5→6 lugares, toast confirmación.
+  · Móvil iPhone 14: footer sticky sin overlap en ambas páginas.
+- Lint: 0 errores. Capturas: download/admin-dashboard.png, download/colaborador-page.png.
